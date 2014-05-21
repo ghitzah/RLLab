@@ -86,8 +86,8 @@ public abstract class MDP {
 		public int compareTo(Histogram h2) {
 			if(total != h2.total || size() != h2.size()) return -1;
 			for (Integer k : h2.keySet()) {
-				if(!containsKey(k))	return -1;
-				if(get(k) != h2.get(k)) return -1;
+				if(!this.containsKey(k))	return -1;
+				if(this.get(k) != h2.get(k)) return -1;
 			}
 			return 0;
 		}
@@ -95,23 +95,23 @@ public abstract class MDP {
 	}
 	
 	//TODO document
+	@SuppressWarnings("serial")
 	public class InvalidMDPException extends Exception{
-
-		/**
-		 * Eclipse complains... 
-		 */
-		private static final long serialVersionUID = 1L;
+		
+		public void printError() {
+			System.out.println("InvalidMDP");
+		}
+		
 		
 	}
 	
 	//TODO: expand this
+	@SuppressWarnings("serial")
 	public class MissingAggParentLinkException extends InvalidMDPException{
 
-		/**
-		 * Eclipse complains... 
-		 */
-		private static final long serialVersionUID = 1L;
-		
+		public void printError() {
+			System.out.println("MissingParent");
+		}		
 	}
 	
 	

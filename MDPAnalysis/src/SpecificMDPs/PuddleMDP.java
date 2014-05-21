@@ -45,7 +45,7 @@ public class PuddleMDP extends GridMDP{
 	/*** Default final parameters ****/	
 	final private int DEFAULT_TOTAL_TRANSITION_WEIGHT = 100; 
 	final private double GOAL_REWARD = 0.5;
-	final private int WIDTH_LAKE = 2;
+	final private int WIDTH_LAKE = 1;
 	
 	
 	
@@ -162,7 +162,7 @@ public class PuddleMDP extends GridMDP{
 	@Override
 	public double R(State s, int a) throws InvalidMDPException{
 		if(s.mdp() != this) throw new InvalidMDPException();
-		Double d = rm.get(a).get(s);
+		Double d = rm.get(a).get(s.idx());
 		if (d == null) {
 			return 0;
 		}else {

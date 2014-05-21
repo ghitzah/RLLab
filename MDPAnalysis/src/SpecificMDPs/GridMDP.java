@@ -264,7 +264,7 @@ public class GridMDP extends MDP{
 			//next state in the base MDP
 			State sn_this = allStates[sn_this_i];
 			//get the cluster to which it pertains
-			while(sn_this.mdp() != mdp && sn_this != null) sn_this = sn_this.parent();			
+			while(sn_this != null && sn_this.mdp() != mdp) sn_this = sn_this.parent();			
 			if(sn_this == null) throw new MissingAggParentLinkException();
 			
 			// index of the next cluster in the parent AggMDP
@@ -277,7 +277,7 @@ public class GridMDP extends MDP{
 		//create new histogram
 		Histogram h = new Histogram();
 		for (Integer j : tm_s_mdp.keySet()) {
-			h.put(allStates[j].idx(), tm_s_this.get(j));
+			h.put(allStates[j].idx(), tm_s_mdp.get(j));
 		}
 		return h;
 	}

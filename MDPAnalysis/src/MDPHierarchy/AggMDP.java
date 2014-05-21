@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedList;
 
+import SpecificMDPs.*;
+
 /**
  * Implementation of an MDP that is based on aggregating states from some larger MDP (possibly an aggregate MDP as well)
  * @author gcoman
@@ -75,7 +77,7 @@ public class AggMDP extends MDP{
 					if(all_equal) return 0;
 					else return -1;
 				}catch (InvalidMDPException e) {
-					//TODO
+					System.out.println("ERROR\n");
 					return -1;
 				}
 			}			
@@ -83,6 +85,13 @@ public class AggMDP extends MDP{
 		
 		//generate the given clusters
 		all_clusts = decluster(larger_mdp.getStates(),cmp);		
+		
+		//set parent links
+		for(Cluster c : all_clusts) {			
+			for(State s : c.c_to_s) {				
+				s.parent = c;
+			}
+		}
 	}
 	
 	/**
@@ -100,14 +109,16 @@ public class AggMDP extends MDP{
 			public int compare(State o1, State o2) {
 				try {
 					boolean all_equal = true;
-					for (int i = 0; i < number_actions() && all_equal; i++) {
-						all_equal = (histogram_mdp.larger_mdp.getHistogram(o1, i, histogram_mdp) == 
-								histogram_mdp.larger_mdp.getHistogram(o2, i, histogram_mdp));
+					int num_a = histogram_mdp.number_actions();
+					for (int i = 0; i < num_a && all_equal; i++) {
+						Histogram h1 = o1.mdp().getHistogram(o1, i, histogram_mdp);
+						Histogram h2 = o2.mdp().getHistogram(o2, i, histogram_mdp);						
+						all_equal = (h1.compareTo(h2) == 0);								
 					}
 					if(all_equal) return 0;
 					else return -1;
 				}catch (InvalidMDPException e) {
-					//TODO
+					e.printError();
 					return -1;
 				}
 			}
@@ -118,8 +129,8 @@ public class AggMDP extends MDP{
 		for(State z : histogram_mdp.getStates()) {
 			Cluster cl = (Cluster) z;  
 			List<Cluster> lcs = decluster(cl.c_to_s, cmp);
-			for(Cluster c : lcs) {
-				c.parent = cl;
+			for(Cluster c : lcs) {				
+				c.index += all_clusts.size();
 			}
 			all_clusts.addAll(lcs);
 		}
@@ -128,6 +139,13 @@ public class AggMDP extends MDP{
 		// parameter and what used to be its larger_mdp
 		this.larger_mdp = agg_m.larger_mdp;
 		agg_m.larger_mdp = this;
+		
+		for(Cluster c : all_clusts) {
+			c.parent = c.c_to_s.get(0).parent;
+			for(State s : c.c_to_s) {				
+				s.parent = c;
+			}
+		}
 		
 		
 	}
@@ -145,15 +163,13 @@ public class AggMDP extends MDP{
 				//check whether the state are the same or not
 				if(cmp.compare(s,c.c_to_s.get(0)) == 0) { // add state to cluster
 					c.c_to_s.add(s);
-					s.parent = c;
 					new_clust = false; // don't create a new clust
 					break;
 				}
 			} // for c
 			if(new_clust) { //create new clust
 				Cluster c_new = new Cluster(this, toRet.size());
-				c_new.c_to_s.add(s); //add the only state it contains, for now
-				s.parent = c_new;
+				c_new.c_to_s.add(s); //add the only state it contains, for now				
 				toRet.add(c_new); 
 			}						
 		} // for s	
@@ -201,7 +217,8 @@ public class AggMDP extends MDP{
 	@Override
 	public int number_actions() {
 		return larger_mdp.number_actions();
-	}		
+	}	
+	
 	@Override
 	public Histogram getHistogram(State c, int a, MDP m) throws InvalidMDPException{
 		State cb = c.baseState();
@@ -216,4 +233,31 @@ public class AggMDP extends MDP{
 		}
 		return toRet;
 	}
+	
+	@Override
+	public String toString() {
+		String toRet = "\n\n UNDERLYING MDP \n\n";
+		toRet += larger_mdp.toString();
+		
+		toRet += "\n\n CLUSTERS \n\n";
+		for (Cluster c : all_clusts) {
+			toRet += "C-" + c.index + " ----> ";
+			for(State s : c.c_to_s) {
+				toRet += "S-" + s.index + ":" + s.toString()  + " _ "; 
+			}toRet += "\n";
+		}
+		return toRet;
+	}
+	
+	
+	
+	public static void main(String[] args) {
+		MDP m = new PuddleMDP(10);
+		AggMDP mR = new AggMDP(m);
+		AggMDP mP = new AggMDP(mR);
+		mP = new AggMDP(mP);
+		mP = new AggMDP(mP);		
+		System.out.println(mR);
+	}
+	
 }
