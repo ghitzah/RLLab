@@ -252,7 +252,7 @@ public class AggMDP extends MDP{
 	
 	
 	public static void main(String[] args) {
-		MDP m = new PuddleMDP(100);
+		MDP m = new PuddleMDP(10);
 		AggMDP mR = new AggMDP(m);
 		AggMDP mP = new AggMDP(mR);
 		mP = new AggMDP(mP);
