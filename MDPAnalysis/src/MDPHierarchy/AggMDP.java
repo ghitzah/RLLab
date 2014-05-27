@@ -13,19 +13,18 @@ import SpecificMDPs.*;
  */
 public class AggMDP extends MDP{
 
-	
-	
+
 	/**
 	 * The special case of a State: a cluster of states from the underlying MDP
 	 * @author gcoman
 	 */
 	public class Cluster extends MDP.State{
-		
+
 		/**
 		 * A map that provides all "labels"(i.e. underlying sub-clusters) that are associated to a cluster
 		 */
 		private List<State> c_to_s;
-		
+
 		/**
 		 * Main constructor 
 		 * @param mdp : the MDP associated with this Cluster
@@ -35,27 +34,28 @@ public class AggMDP extends MDP{
 			super(mdp, index);
 			c_to_s = new LinkedList<MDP.State>();
 		}
-		
+
 		@Override
 		public State baseState() {			
 			return c_to_s.get(0).baseState();
 		}
-
 	}
-	
+
 	/**
 	 * The actual MDP that is aggregated
 	 */
 	private MDP larger_mdp;
-	
-	
-	
+
+
+
 	/**
 	 * all_clusts : A collection of all clusters in the current aggregate MDP 
 	 */
 	private Collection<Cluster> all_clusts;
-	
-	
+
+
+
+
 	/**
 	 * Main constructor : since this is a base constructor, the clusters are determined
 	 * based on differences in reward
@@ -64,28 +64,39 @@ public class AggMDP extends MDP{
 	public AggMDP(MDP m) {
 		// the underlying MDP is the actual MDP given as input
 		larger_mdp = m;
-		
+
 		// set up state comparator based on reward being equal for all actions
-		Comparator<State> cmp = new Comparator<State>() {
+		StateComp cmp = new StateComp() {
 			@Override
-			public int compare(State o1, State o2) {
+			public double compare(State o1, State o2) {
+
 				try {
-					boolean all_equal = true;
-					for (int i = 0; i < number_actions() && all_equal; i++) {
-						all_equal = (larger_mdp.R(o1, i) == larger_mdp.R(o2, i));
+					// Calculate the distance between two states (reward-based):
+					// distance(o1, o2) = max_a |R(o1,a) - R(o2,a)|
+					double maxDistance = 0;
+					for (int i = 0; i < number_actions(); i++) {
+						double distance = Math.abs(larger_mdp.R(o1, i) - larger_mdp.R(o2, i));
+						maxDistance = (maxDistance > distance) ? maxDistance : distance; 	
 					}
-					if(all_equal) return 0;
-					else return -1;
+					return maxDistance;
+
 				}catch (InvalidMDPException e) {
 					System.out.println("ERROR\n");
 					return -1;
 				}
 			}			
 		};
-		
+
+
 		//generate the given clusters
-		all_clusts = decluster(larger_mdp.getStates(),cmp);		
-		
+		// distance matrix D represented in list of list form
+		List<List<Double>> distances = new LinkedList<List<Double>>();
+
+		all_clusts = decluster(larger_mdp.getStates(),cmp, distances);	
+
+		// construct the distance matrix D
+		D = convertToMatrix(distances);
+
 		//set parent links
 		for(Cluster c : all_clusts) {			
 			for(State s : c.c_to_s) {				
@@ -93,7 +104,10 @@ public class AggMDP extends MDP{
 			}
 		}
 	}
-	
+
+
+
+
 	/**
 	 * Constructor which builds clusters based on differences in the probability transition maps
 	 * @param agg_m : the Aggregate MDP that becomes declustered. Note that this input Aggregate MDP will get modified. 
@@ -102,84 +116,148 @@ public class AggMDP extends MDP{
 	public AggMDP(AggMDP agg_m) {				
 		// MDP needed for generating histograms - has to be final
 		final AggMDP histogram_mdp = agg_m;
-		
+
+
 		//set up state comparator based on histograms being equal for all actions	
-		Comparator<State> cmp = new Comparator<State>() {
+		StateComp cmp = new StateComp() {
 			@Override
-			public int compare(State o1, State o2) {
+			public double compare(State o1, State o2) {
+
 				try {
-					boolean all_equal = true;
+					// Calculate the distance between two states (probability-based):
+					// distance(o1, o2) = max_a (|R(o1,a) - R(o2,a)| + r D(P_o1^a, P_o2^a))
+					double maxDistance = 0;
 					int num_a = histogram_mdp.number_actions();
-					for (int i = 0; i < num_a && all_equal; i++) {
+					for (int i = 0; i < num_a; i++) {
 						Histogram h1 = o1.mdp().getHistogram(o1, i, histogram_mdp);
 						Histogram h2 = o2.mdp().getHistogram(o2, i, histogram_mdp);						
-						all_equal = (h1.compareTo(h2) == 0);								
+						double probDistance = h1.compareToJFastEMD(h2);
+
+						double distance = Math.abs(larger_mdp.R(o1, i) - larger_mdp.R(o2, i)) + GAMMA*probDistance;
+						maxDistance = (maxDistance > distance) ? maxDistance : distance; 	
 					}
-					if(all_equal) return 0;
-					else return -1;
+					return maxDistance;
+
 				}catch (InvalidMDPException e) {
 					e.printError();
 					return -1;
 				}
 			}
 		};
-		
-		//decluster each cluster 	
+
+		// decluster each cluster
+		// distance matrix D represented in list of lists form
+		List<List<Double>> all_distances = new LinkedList<List<Double>>();
+
 		all_clusts = new LinkedList<AggMDP.Cluster>();
 		for(State z : histogram_mdp.getStates()) {
 			Cluster cl = (Cluster) z;  
-			List<Cluster> lcs = decluster(cl.c_to_s, cmp);
+			
+			// distances between states belonging to same cluster
+			List<List<Double>> local_dist = new LinkedList<List<Double>>();
+			
+			// distances between states belonging to different clusters
+			List<List<Double>> global_dist = new LinkedList<List<Double>>();
+			
+			List<Cluster> lcs = decluster(cl.c_to_s, cmp, local_dist);
+			
+			int i = 0;
 			for(Cluster c : lcs) {				
 				c.index += all_clusts.size();
+				
+				// compute the missing distances between states in the current cluster and all_clusts
+				for (Cluster l: all_clusts){
+					double dist = cmp.compare(c, l.c_to_s.get(0));
+					global_dist.get(i).add(dist);
+				}
+				
+				// append two lists representing distances inside and among clusters
+				global_dist.get(i).addAll(local_dist.get(i));
+				i++;
 			}
+			
+			all_distances.addAll(global_dist);
+			
 			all_clusts.addAll(lcs);
 		}
 		
+		// construct the distance matrix D
+		D = convertToMatrix(all_distances);
+
 		// the newly created aggregate MDP is a layer between the agg_m provided as 
 		// parameter and what used to be its larger_mdp
 		this.larger_mdp = agg_m.larger_mdp;
 		agg_m.larger_mdp = this;
-		
+
 		for(Cluster c : all_clusts) {
 			c.parent = c.c_to_s.get(0).parent;
 			for(State s : c.c_to_s) {				
 				s.parent = c;
 			}
 		}
-		
-		
 	}
 
 
-	private List<Cluster> decluster(Collection<State> states, Comparator<State> cmp) {
+	public interface StateComp {
+		public double compare(State s1, State s2) ;
+	}
+
+	private List<Cluster> decluster(Collection<State> states, StateComp cmp, List<List<Double>> distances) {
 		//initialize all_clusts to empty, then try to create new clusters using the states 
 		// in the underlying MDP
 		List<Cluster> toRet = new LinkedList<Cluster>();
+
 		// find the cluster associated with each state
 		for (State s : states) {
 			// if no cluster has the same reward, then create new cluster
 			boolean new_clust = true;
+
+			// list storing all distances from all previous clusters to the current cluster
+			List<Double> dist_list = new LinkedList<Double>();
+
 			for (Cluster c : toRet) {
+				double dist = cmp.compare(s,c.c_to_s.get(0));
+
 				//check whether the state are the same or not
-				if(cmp.compare(s,c.c_to_s.get(0)) == 0) { // add state to cluster
+				if(dist == 0) { // add state to cluster
 					c.c_to_s.add(s);
 					new_clust = false; // don't create a new clust
 					break;
+				}
+				else{ // add the distance to the list
+					dist_list.add(dist);
 				}
 			} // for c
 			if(new_clust) { //create new clust
 				Cluster c_new = new Cluster(this, toRet.size());
 				c_new.c_to_s.add(s); //add the only state it contains, for now				
 				toRet.add(c_new); 
+				distances.add(dist_list); // add the distances collected so far
 			}						
-		} // for s	
+		} // for s
+
 		return toRet;
 	}
-	
-	
+
+	// convert the list of lists to an array of arrays
+	private double[][] convertToMatrix(List<List<Double>> distances) {
+		int n = distances.size();
+		double D[][] = new double[n][n];
+		for (int i = 0; i < n; i++){
+			int j = 0;
+			for (Double d: distances.get(i)){
+				D[i][j] = d;
+				j++;
+			}
+		}
+		return D;
+	}
+
+
+
 	@Override
 	public double R(State c, int a) throws InvalidMDPException{
-		
+
 		if (c.mdp == this) {
 			double d = 0.0;
 			Cluster cc = (Cluster) c;
@@ -188,7 +266,7 @@ public class AggMDP extends MDP{
 				d += larger_mdp.R(sn, a);
 			return d / sns.size();
 		}else throw new InvalidMDPException();
-		
+
 	}
 
 	@Override
@@ -205,7 +283,7 @@ public class AggMDP extends MDP{
 					d += larger_mdp.P(si, a, sni);				
 			return d / ss.size();
 		}else throw new InvalidMDPException();
-		
+
 	}
 
 	@Override
@@ -213,12 +291,12 @@ public class AggMDP extends MDP{
 		return all_clusts.size();
 	}
 
-	
+
 	@Override
 	public int number_actions() {
 		return larger_mdp.number_actions();
 	}	
-	
+
 	@Override
 	public Histogram getHistogram(State c, int a, MDP m) throws InvalidMDPException{
 		State cb = c.baseState();
@@ -233,12 +311,12 @@ public class AggMDP extends MDP{
 		}
 		return toRet;
 	}
-	
+
 	@Override
 	public String toString() {
 		String toRet = "\n\n UNDERLYING MDP \n\n";
 		toRet += larger_mdp.toString();
-		
+
 		toRet += "\n\n CLUSTERS \n\n";
 		for (Cluster c : all_clusts) {
 			toRet += "C-" + c.index + " ----> ";
@@ -248,9 +326,9 @@ public class AggMDP extends MDP{
 		}
 		return toRet;
 	}
-	
-	
-	
+
+
+
 	public static void main(String[] args) {
 		MDP m = new PuddleMDP(10);
 		AggMDP mR = new AggMDP(m);
@@ -259,5 +337,5 @@ public class AggMDP extends MDP{
 		mP = new AggMDP(mP);		
 		System.out.println(mR);
 	}
-	
+
 }
