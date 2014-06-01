@@ -84,84 +84,93 @@ public class PuddleMDP extends GridMDP{
 		
 		allStates = new PuddleState[S]; 
 		
-		//for each action
 		for (int i_a = 0; i_a < dirs.length; i_a++) {			
 			for (int y_ax = 0; y_ax < W; y_ax++) { //y-coord
 				for (int x_ax = 0; x_ax < W; x_ax++) { //x-coord
 					State s = new PuddleState(this, x_ax, y_ax);
 					int i_s = s.idx();
 					allStates[i_s] =  s;
-					
-					// get coords of the next state, as indicated by action a
-					PuddleState next_s = new PuddleState(this, x_ax + dirs[i_a][0], 
-							y_ax + dirs[i_a][1]);
-					
-					/* set up REWARD */	
-					if(next_s.isGoal()) { // reach goal state						
-						rm.get(i_a).put(i_s, GOAL_REWARD);
-					}else {
-						int d = WIDTH_LAKE; 
-						//check if distance d is smaller than WIDTH_LAKE
-						int xx = next_s.x_coord;
-						int yy = next_s.y_coord;
-						for (int[] line : wpos) {
-							if(line[0] == line[2]) {
-								d = Math.min(d, Math.abs(xx - line[0]) 
-										+ Math.max(0, line[1] - yy) 
-										+ Math.max(0, yy - line[3]));
-							}else {
-								d = Math.min(d, Math.abs(yy - line[1]) 
-										+ Math.max(0, line[0] - xx) 
-										+ Math.max(0, xx - line[2]));
-							}
-						}//for wpos
-						if(d != WIDTH_LAKE) {
-							//TODO: magic formula - maybe change it!
-							rm.get(i_a).put(i_s, - (WIDTH_LAKE - d) * 0.1 );
-						}
-					} //end if then
-	                /* REWARD done */
-	                
-					/* set up TRANSITION */
-	                //.85% desired transition, .05 stay put, .1 left or right
-	                Map<Integer, Integer> tm_tmp = tm.get(i_a).get(i_s);
-	                //indeces of the 4 candidates for transition
-	                int[] idxs = new int[4];
-	                idxs[0] = i_s; //curent state
-	                idxs[1] = next_s.idx(); // next state
-	                for(int i=0; i<2;i++) { // left and right of crt state
-	                	int a_n = (i_a + (2*i-1) + dirs.length) % dirs.length;	                	
-		                idxs[i+2] = new PuddleState(this, x_ax + dirs[a_n][0],y_ax + dirs[a_n][1]).idx();		            
-	                }
-	                int[] vals = {5,0,0,0}; 
-	                if(idxs[1] == i_s) {
-						vals[0] += 85;
-					}else vals[1] = 85;
-	                for (int i = 2; i < idxs.length; i++) {
-						if(idxs[i] == i_s) {
-							vals[0] += 5;
+				}
+			}
+		}
+		
+
+		//for each action
+		for (int i_a = 0; i_a < dirs.length; i_a++) {
+			for(State s : allStates) {
+				PuddleState sPud = (PuddleState) s;
+				int y_ax = sPud.y_coord;
+				int x_ax = sPud.x_coord;
+				int i_s = s.idx();
+				// get coords of the next state, as indicated by action a
+				PuddleState next_s = new PuddleState(this, x_ax + dirs[i_a][0], 
+						y_ax + dirs[i_a][1]);
+
+				/* set up REWARD */	
+				if(next_s.isGoal()) { // reach goal state						
+					rm.get(i_a).put(i_s, GOAL_REWARD);
+				}else {
+					int d = WIDTH_LAKE; 
+					//check if distance d is smaller than WIDTH_LAKE
+					int xx = next_s.x_coord;
+					int yy = next_s.y_coord;
+					for (int[] line : wpos) {
+						if(line[0] == line[2]) {
+							d = Math.min(d, Math.abs(xx - line[0]) 
+									+ Math.max(0, line[1] - yy) 
+									+ Math.max(0, yy - line[3]));
 						}else {
-							vals[i] = 5;
+							d = Math.min(d, Math.abs(yy - line[1]) 
+									+ Math.max(0, line[0] - xx) 
+									+ Math.max(0, xx - line[2]));
 						}
+					}//for wpos
+					if(d != WIDTH_LAKE) {
+						//TODO: magic formula - maybe change it!
+						rm.get(i_a).put(i_s, - (WIDTH_LAKE - d) * 0.1 );
 					}
-	                //only add non-negative transitions
-	                for (int i = 0; i < idxs.length; i++) {
-	                	if(vals[i] != 0) {
-	                		tm_tmp.put(idxs[i], vals[i]);
-	                	}
-	                }
-	                /**TRANSITION DONE*/
-				}//for x_ax
-			}//for y_ax
+				} //end if then
+				/* REWARD done */
+
+				/* set up TRANSITION */
+				//.85% desired transition, .05 stay put, .1 left or right
+				Map<State, Double> tm_tmp = tm.get(i_a).get(i_s);
+				//indeces of the 4 candidates for transition
+				int[] idxs = new int[4];
+				idxs[0] = i_s; //curent state
+				idxs[1] = next_s.idx(); // next state
+				for(int i=0; i<2;i++) { // left and right of crt state
+					int a_n = (i_a + (2*i-1) + dirs.length) % dirs.length;	                	
+					idxs[i+2] = new PuddleState(this, x_ax + dirs[a_n][0],y_ax + dirs[a_n][1]).idx();		            
+				}
+				int[] vals = {5,0,0,0}; 
+				if(idxs[1] == i_s) {
+					vals[0] += 85;
+				}else vals[1] = 85;
+				for (int i = 2; i < idxs.length; i++) {
+					if(idxs[i] == i_s) {
+						vals[0] += 5;
+					}else {
+						vals[i] = 5;
+					}
+				}
+				//only add non-negative transitions
+				for (int i = 0; i < idxs.length; i++) {
+					if(vals[i] != 0) {
+						tm_tmp.put(allStates[idxs[i]], (double) vals[i]);
+					}
+				}
+				/**TRANSITION DONE*/
+			}//for s			
 		} //for i_a
 	} // method
-	
+
 	
 
 	
 	@Override
 	public double R(State s, int a) throws InvalidMDPException{
-		if(s.mdp() != this) throw new InvalidMDPException();
+		if(!s.sameMdp(this)) throw new InvalidMDPException();
 		Double d = rm.get(a).get(s.idx());
 		if (d == null) {
 			return 0;
@@ -172,9 +181,9 @@ public class PuddleMDP extends GridMDP{
 	
 	@Override
 	public double P(State s, int a, State sn /*s_next*/) throws InvalidMDPException{
-		if(s.mdp() != this || sn.mdp() != this) throw new InvalidMDPException();
+		if(!s.sameMdp(this) || sn.sameMdp(this)) throw new InvalidMDPException();
 		
-		Integer d = tm.get(a).get(s.idx()).get(sn.idx());
+		Double d = tm.get(a).get(s.idx()).get(sn.idx());
 		if (d == null) {
 			return 0;
 		}else {
@@ -198,9 +207,9 @@ public class PuddleMDP extends GridMDP{
 			toRet += "Action " + i + "\n";
 			for (int k = 0; k < tm.get(i).size(); k++) {
 				toRet += "S " + "(" + k%W  + "," + k/W + ") :" + " ---> ";
-				for (Integer j : tm.get(i).get(k).keySet()) {
-					toRet += "(" + j%W  + "," + j/W + ") :" + ":"
-							+ ((double) tm.get(i).get(k).get(j)) / total_sum_pm 
+				for (State j : tm.get(i).get(k).keySet()) {					
+					toRet += "(" + j.idx()%W  + "," + j.idx()/W + ") :" + ":"
+							+ tm.get(i).get(k).get(j) / total_sum_pm 
 							+ " ";
 				}
 				toRet += "\n";
@@ -250,11 +259,11 @@ public class PuddleMDP extends GridMDP{
 		for (int i = 0; i < num_a; i++) {
 			rm.add( new HashMap<Integer,Double>());
 		}
-		tm = new ArrayList<ArrayList<Map<Integer,Integer>>>(num_a);
+		tm = new ArrayList<ArrayList<Map<State,Double>>>(num_a);
 		for (int i = 0; i < num_a; i++) {
-			tm.add(new ArrayList<Map<Integer,Integer>>(num_s));
+			tm.add(new ArrayList<Map<State,Double>>(num_s));
 			for (int j = 0; j < num_s; j++) {
-				tm.get(i).add(new HashMap<Integer,Integer>());
+				tm.get(i).add(new HashMap<State,Double>());
 			}
 		}
 	}

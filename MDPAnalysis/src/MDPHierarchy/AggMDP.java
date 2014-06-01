@@ -1,8 +1,10 @@
 package MDPHierarchy;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.LinkedList;
+import java.util.Map;
+import java.text.*;
 
 import SpecificMDPs.*;
 
@@ -39,6 +41,7 @@ public class AggMDP extends MDP{
 		public State baseState() {			
 			return c_to_s.get(0).baseState();
 		}
+		
 	}
 
 	/**
@@ -127,13 +130,13 @@ public class AggMDP extends MDP{
 					// Calculate the distance between two states (probability-based):
 					// distance(o1, o2) = max_a (|R(o1,a) - R(o2,a)| + r D(P_o1^a, P_o2^a))
 					double maxDistance = 0;
-					int num_a = histogram_mdp.number_actions();
+					int num_a = histogram_mdp.number_actions();					
 					for (int i = 0; i < num_a; i++) {
-						Histogram h1 = o1.mdp().getHistogram(o1, i, histogram_mdp);
-						Histogram h2 = o2.mdp().getHistogram(o2, i, histogram_mdp);						
+						Histogram h1 = new Histogram(o1.getHistogram(i, histogram_mdp));
+						Histogram h2 = new Histogram(o2.getHistogram(i, histogram_mdp));		
 						double probDistance = h1.compareToJFastEMD(h2);
-
-						double distance = Math.abs(larger_mdp.R(o1, i) - larger_mdp.R(o2, i)) + GAMMA*probDistance;
+						//double probDistance = h1.compareTo(h2);
+						double distance = Math.abs(o1.R(i) - o2.R(i)) + GAMMA*probDistance / 100.0;						
 						maxDistance = (maxDistance > distance) ? maxDistance : distance; 	
 					}
 					return maxDistance;
@@ -145,11 +148,13 @@ public class AggMDP extends MDP{
 			}
 		};
 
-		// decluster each cluster
+		/** decluster each cluster */
+		
 		// distance matrix D represented in list of lists form
 		List<List<Double>> all_distances = new LinkedList<List<Double>>();
-
 		all_clusts = new LinkedList<AggMDP.Cluster>();
+		
+		
 		for(State z : histogram_mdp.getStates()) {
 			Cluster cl = (Cluster) z;  
 			
@@ -161,23 +166,24 @@ public class AggMDP extends MDP{
 			
 			List<Cluster> lcs = decluster(cl.c_to_s, cmp, local_dist);
 			
-			int i = 0;
-			for(Cluster c : lcs) {				
+			Iterator<List<Double>> it_dists = local_dist.iterator();
+			
+			for(Cluster c : lcs) {
+				// set index
 				c.index += all_clusts.size();
 				
+				//tmp_lst will be added to the global distance metric
+				List<Double> tmp_lst = new LinkedList<Double>();
 				// compute the missing distances between states in the current cluster and all_clusts
 				for (Cluster l: all_clusts){
-					double dist = cmp.compare(c, l.c_to_s.get(0));
-					global_dist.get(i).add(dist);
+					double dist = cmp.compare(c.c_to_s.get(0), l.c_to_s.get(0));
+					tmp_lst.add(dist);
 				}
-				
 				// append two lists representing distances inside and among clusters
-				global_dist.get(i).addAll(local_dist.get(i));
-				i++;
+				tmp_lst.addAll(it_dists.next());
+				global_dist.add(tmp_lst);
 			}
-			
 			all_distances.addAll(global_dist);
-			
 			all_clusts.addAll(lcs);
 		}
 		
@@ -209,17 +215,17 @@ public class AggMDP extends MDP{
 
 		// find the cluster associated with each state
 		for (State s : states) {
-			// if no cluster has the same reward, then create new cluster
+			// if no cluster has measure, then create new cluster
 			boolean new_clust = true;
 
 			// list storing all distances from all previous clusters to the current cluster
 			List<Double> dist_list = new LinkedList<Double>();
-
+			
 			for (Cluster c : toRet) {
 				double dist = cmp.compare(s,c.c_to_s.get(0));
-
+				
 				//check whether the state are the same or not
-				if(dist == 0) { // add state to cluster
+				if(dist < 0.00001) { // add state to cluster TODO: magic number(epsilon)
 					c.c_to_s.add(s);
 					new_clust = false; // don't create a new clust
 					break;
@@ -228,6 +234,7 @@ public class AggMDP extends MDP{
 					dist_list.add(dist);
 				}
 			} // for c
+			
 			if(new_clust) { //create new clust
 				Cluster c_new = new Cluster(this, toRet.size());
 				c_new.c_to_s.add(s); //add the only state it contains, for now				
@@ -242,12 +249,16 @@ public class AggMDP extends MDP{
 	// convert the list of lists to an array of arrays
 	private double[][] convertToMatrix(List<List<Double>> distances) {
 		int n = distances.size();
-		double D[][] = new double[n][n];
+		double D[][] = new double[n][];
 		for (int i = 0; i < n; i++){
-			int j = 0;
-			for (Double d: distances.get(i)){
-				D[i][j] = d;
-				j++;
+			int w = distances.get(i).size();
+			if(w != 0) {
+				D[i] = new double[w];
+				int j = 0;
+				for (Double d: distances.get(i)){
+					D[i][j] = d;
+					j++;
+				}
 			}
 		}
 		return D;
@@ -258,7 +269,7 @@ public class AggMDP extends MDP{
 	@Override
 	public double R(State c, int a) throws InvalidMDPException{
 
-		if (c.mdp == this) {
+		if (c.sameMdp(this)) {
 			double d = 0.0;
 			Cluster cc = (Cluster) c;
 			Collection<State> sns = cc.c_to_s;
@@ -272,7 +283,7 @@ public class AggMDP extends MDP{
 	@Override
 	public double P(State c, int a, State cn) throws InvalidMDPException{
 		double d = 0.0;
-		if (c.mdp == this && cn.mdp == this) {
+		if (c.sameMdp(this) && cn.sameMdp(this)) {
 			Cluster cc = (Cluster) c;
 			Collection<State> ss = cc.c_to_s;
 			cc = (Cluster) cn;
@@ -298,9 +309,9 @@ public class AggMDP extends MDP{
 	}	
 
 	@Override
-	public Histogram getHistogram(State c, int a, MDP m) throws InvalidMDPException{
+	public Map<State,Double> getHistogram(State c, int a) throws InvalidMDPException{
 		State cb = c.baseState();
-		return cb.mdp.getHistogram(cb, a, m);
+		return cb.getHistogram(a, this);
 	}
 
 	@Override
@@ -324,6 +335,15 @@ public class AggMDP extends MDP{
 				toRet += "S-" + s.index + ":" + s.toString()  + " _ "; 
 			}toRet += "\n";
 		}
+		toRet += "\n\n METRIC \n\n";
+		for (int i=1 ; i < D.length ; i++) {			
+			for (int j = 0; j < D[i].length; j++) {
+				DecimalFormat df = new DecimalFormat("###.##");
+				String d = df.format(D[i][j]);
+				toRet += d + " ";
+			}toRet += "\n";
+		}
+		
 		return toRet;
 	}
 

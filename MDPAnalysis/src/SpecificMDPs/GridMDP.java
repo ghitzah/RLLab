@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+
+
 import MDPHierarchy.MDP;
 
 /**
@@ -62,7 +64,7 @@ public class GridMDP extends MDP{
 		 */
 		protected boolean isGoal() {
 			//TODO: maybe allow for a change in goal state
-			return index == GOAL_STATE;
+			return this.idx() == GOAL_STATE;
 		}
 		
 		@Override
@@ -85,7 +87,7 @@ public class GridMDP extends MDP{
 	 * associated with that state. We assume that all probs. in the model have a total 
 	 * weight of total_sum_pm 
 	 */
-	protected ArrayList< ArrayList <Map<Integer, Integer> > > tm; //probability model
+	protected ArrayList< ArrayList <Map<State, Double> > > tm; //probability model
 	
 	/**
 	 * As to avoid numerical issues, we store transition probabilities as integers,
@@ -148,11 +150,11 @@ public class GridMDP extends MDP{
 		
 		total_sum_pm = DEFAULT_TOTAL_TRANSITION_WEIGHT;
 		//initialize tm
-		tm = new ArrayList<ArrayList<Map<Integer,Integer>>>(A);
+		ArrayList<ArrayList<Map<Integer,Double>>> tm_int = new ArrayList<ArrayList<Map<Integer,Double>>>(A);
 		for (int i = 0; i < A; i++) {
-			tm.add(new ArrayList<Map<Integer,Integer>>(S));
+			tm_int.add(new ArrayList<Map<Integer,Double>>(S));
 			for (int j = 0; j < S; j++) {
-				tm.get(i).add(new HashMap<Integer,Integer>());
+				tm_int.get(i).add(new HashMap<Integer,Double>());
 			}
 		}
 		
@@ -174,7 +176,7 @@ public class GridMDP extends MDP{
 					int i_ss = idx_all[x_ax][y_ax];
 					/* set up TRANSITION */
 					//.85% desired transition, .05 stay put, .1 left or right
-					Map<Integer, Integer> tm_tmp = tm.get(i_a).get(i_ss);
+					Map<Integer, Double> tm_tmp = tm_int.get(i_a).get(i_ss);
 					//indeces of the 4 candidates for transition
 					int[] idxs = new int[4];
 					idxs[0] = i_ss; //curent state
@@ -200,18 +202,30 @@ public class GridMDP extends MDP{
 					//only add non-negative transitions
 					for (int i = 0; i < idxs.length; i++) {
 						if(vals[i] != 0) {
-							tm_tmp.put(idxs[i], vals[i]);
+							tm_tmp.put(idxs[i], (double) vals[i]);
 						}
 					}
 					/**TRANSITION DONE*/
 				}//for x_ax
 			}//for y_ax
 		} //for i_a
+		
+		tm = new ArrayList<ArrayList<Map<State,Double>>>(A);
+		for (int i = 0; i < A; i++) {
+			tm.add(new ArrayList<Map<State,Double>>(S));
+			for (int j = 0; j < S; j++) {
+				tm.get(i).add(new HashMap<State,Double>());
+				for(Integer k : tm_int.get(i).get(j).keySet()) {
+					tm.get(i).get(j).put(allStates[k], tm_int.get(i).get(j).get(k));
+				}
+			}
+		}
+		
 	}
 	
 	@Override
 	public double R(State s, int a) throws InvalidMDPException{
-		if(s.mdp() != this) throw new InvalidMDPException();
+		if(!s.sameMdp(this)) throw new InvalidMDPException();
 		GridState ss = (GridState) s;
 		if(ss.isGoal()) return GOAL_REWARD;
 		else return PENALTY;
@@ -219,12 +233,12 @@ public class GridMDP extends MDP{
 	
 	@Override
 	public double P(State s, int a, State sn /*s_next*/) throws InvalidMDPException{
-		if(s.mdp() != this || sn.mdp() != this) throw new InvalidMDPException();
-		Integer d = tm.get(a).get(s.idx()).get(sn.idx());
+		if(!s.sameMdp(this) || !sn.sameMdp(this)) throw new InvalidMDPException();
+		Double d = tm.get(a).get(s.idx()).get(sn.idx());
 		if (d == null) {
 			return 0;
 		}else {
-			return ((double) d) / total_sum_pm;
+			return  d / total_sum_pm;
 		}
 	}
 	
@@ -249,37 +263,15 @@ public class GridMDP extends MDP{
 	}
 	
 	@Override
-	public Histogram getHistogram(State s, int a, MDP mdp) throws InvalidMDPException {
-		if(s.mdp() != this) throw new InvalidMDPException();
+	public Map<State,Double> getHistogram(State s, int a) throws InvalidMDPException {
+		if(!s.sameMdp(this)) throw new InvalidMDPException();
 		
 		int si = s.idx();
 		
 		// transition map out of input state s to the base Grid MDP
-		Map<Integer, Integer> tm_s_this = tm.get(a).get(si);
+		//Map<State, Integer> tm_s_this = tm.get(a).get(si);
 		
-		// transition map out of input state s to the input (possibly aggregate MDP)
-		Map<Integer, Integer> tm_s_mdp = new HashMap<Integer, Integer>();
-		
-		for (Integer sn_this_i : tm_s_this.keySet()) {
-			//next state in the base MDP
-			State sn_this = allStates[sn_this_i];
-			//get the cluster to which it pertains
-			while(sn_this != null && sn_this.mdp() != mdp) sn_this = sn_this.parent();			
-			if(sn_this == null) throw new MissingAggParentLinkException();
-			
-			// index of the next cluster in the parent AggMDP
-			int sn_mdp_i = sn_this.idx();
-			if(tm_s_mdp.containsKey(sn_mdp_i)) {
-				tm_s_mdp.put(sn_mdp_i, tm_s_this.get(sn_this_i) + tm_s_mdp.get(sn_mdp_i));
-			}else tm_s_mdp.put(sn_mdp_i, tm_s_this.get(sn_this_i));
-		}
-		
-		//create new histogram
-		Histogram h = new Histogram();
-		for (Integer j : tm_s_mdp.keySet()) {
-			h.put(allStates[j].idx(), tm_s_mdp.get(j));
-		}
-		return h;
+		return tm.get(a).get(si);
 	}
 	
 	
@@ -307,8 +299,8 @@ public class GridMDP extends MDP{
 			toRet += "Action " + i + "\n";
 			for (int k = 0; k < tm.get(i).size(); k++) {
 				toRet += "S " + allStates[k] + " :" + " ---> ";
-				for (Integer j : tm.get(i).get(k).keySet()) {
-					toRet += allStates[j] + " :"
+				for (State j : tm.get(i).get(k).keySet()) {
+					toRet += j + " :"
 							+ ((double) tm.get(i).get(k).get(j)) / total_sum_pm 
 							+ " ";
 				}

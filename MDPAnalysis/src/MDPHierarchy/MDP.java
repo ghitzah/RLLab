@@ -10,8 +10,9 @@ import java.util.TreeMap;
 
 
 
+
 /**
- * Abstract class to be used as an interface for writting Markov Decision Models
+ * Abstract class to be used as an interface for writing Markov Decision Models
  * @author gcoman
  *
  */
@@ -22,13 +23,13 @@ public abstract class MDP {
 	 * @author gcoman
 	 *
 	 */
-	public class State implements Feature {
+	public abstract class State implements Feature, Comparable<State> {
 
 		
 		/**
 		 * link to the MDP that the state is part of
 		 */
-		protected MDP mdp;
+		private MDP mdp;
 		/**
 		 * the index of this state in its MDP, as an int from 0 to SIZE-1
 		 */
@@ -52,15 +53,15 @@ public abstract class MDP {
 		/**
 		 * This method is used in the recursive implementation of baseState for 
 		 * A hierarchical structure
-		 * @return
+		 * @return a state that is associated with this cluster
 		 */
 		public State baseState() {
 			return this;
 		}
 		
 		
-		public MDP mdp() {
-			return mdp;
+		public boolean sameMdp(MDP m) {
+			return this.mdp == m  ;
 		}
 		
 		public int idx() {
@@ -73,37 +74,111 @@ public abstract class MDP {
 
 		@Override
 		public double groundDist(Feature f2) {
-			State s2 = (State)f2;
+			State s2 = (State) f2;
 			// note the matrix D is a lower triangle matrix
-			if(index < s2.idx()) return mdp.D[index][s2.idx()];
-			else return mdp.D[s2.idx()][index];
+			if(index == s2.index) return 0;
+			if(index > s2.index) return mdp.D[index][s2.index];			
+			else return mdp.D[s2.index][index];
 		}
-	}
-	
 
+		@Override
+		public int compareTo(State o) {
+			return this.index - o.index;
+		}
+		
+		
+		/**
+		 * returns the probability of transitioning from this state to sn when taking action a
+		 * @param a : action taken
+		 * @param sn : next state
+		 * @return probability of transition, as a double
+		 */
+		public double P(int a, State cn)  throws InvalidMDPException{
+			//TODO : make it to the cluster (maybe)
+			if(cn.mdp != this.mdp) throw new InvalidMDPException();
+			return mdp.P(this, a, cn);
+		}
+
+
+		/**
+		 * returns the reward function when taking an input action from the current state
+		 * @param a : action taken
+		 * @return reward associated with this transition
+		 */
+		public double R(int a) {		
+			try {
+				return mdp.R(this, a);
+			}catch (InvalidMDPException e) {
+				return 0;
+				//Nothing to catch
+			}
+		}
+
+
+		/**
+	 * Returns a histogram representing the transition from this state under 
+	 * a given input action. Note that the transition probability is over 
+	 * clusters in a possibly different aggregate MDP	
+	 * @param a : action taken
+	 * @param m : MDP used to determine the sigma algebra for the histogram
+	 * @return an integer based histogram representing the transition map under the input s-a pair 
+	 */
+	public Map<State,Double> getHistogram(int a, MDP m) throws InvalidMDPException {
+		
+		State s = baseState();
+		
+		// transition map out of input state s to the input (possibly aggregate MDP)
+		Map<State,Double> tm_s_this = s.mdp.getHistogram(s, a);
+		
+		TreeMap<State, Double> tm_s_mdp = new TreeMap<State, Double>();
+		
+		for (State sn_this : tm_s_this.keySet()) {
+			//get the cluster to which it pertains
+			State sn_mdp = sn_this;
+			while(sn_mdp != null && !sn_mdp.sameMdp(m)) sn_mdp = sn_mdp.parent();			
+			if(sn_mdp == null) 
+				{				
+				throw new MissingAggParentLinkException();
+				}
+			
+			// index of the next cluster in the parent AggMDP
+			if(tm_s_mdp.containsKey(sn_mdp)) {
+				tm_s_mdp.put(sn_mdp, tm_s_this.get(sn_this) + tm_s_mdp.get(sn_mdp));
+			}else tm_s_mdp.put(sn_mdp, tm_s_this.get(sn_this));
+		}
+		
+		return tm_s_mdp;	
+	}
+		
+		
+	}
 	
 	/**
 	 * A class that implements a histogram (to be used in the  
 	 * @author gcoman
-	 *
-	 */
-	@SuppressWarnings("serial")
-	public class Histogram extends TreeMap<State,Integer> implements Comparable<Histogram>{
-		private int total = 0;
-				
-		public Integer put(State s, Integer v) {
-			super.put(s, v);
-			total += v;
-			return v;
-		}
+	 */	
+	public class Histogram extends Signature{
 		
-		@Override
+		private int total = 0;		
+		private TreeMap<State, Double> heapStorage;
+		
+		
+		public Histogram(Map<State,Double> raw_hist) {
+			heapStorage = new TreeMap<MDP.State, Double>();
+			for (State j : raw_hist.keySet()) {
+				double d = raw_hist.get(j);
+				heapStorage.put(j, d);
+				total += d;			
+			}			
+			setSignature();
+		}
+				
 		public int compareTo(Histogram h2) {
-			
-			if(total != h2.total || size() != h2.size()) return -1;
-			for (State s : h2.keySet()) {
-				if(!this.containsKey(s))	return -1;
-				if(this.get(s) != h2.get(s)) return -1;
+			if(Math.abs(total - h2.total)  > 0.00001) return -1; //TODO magic number
+			if(heapStorage.size() != h2.heapStorage.size()) { return 1;}
+			for (State s : h2.heapStorage.keySet()) {
+				if(!heapStorage.containsKey(s))	{return 1; }				
+				if(heapStorage.get(s) - h2.heapStorage.get(s) > 0.000001) {return 1; } //TODO magic number
 			}
 			
 			return 0;
@@ -111,39 +186,29 @@ public abstract class MDP {
 		
 		// compare two histograms using JFastEMD
 		public double compareToJFastEMD(Histogram h2){
-			if(total != h2.total ) return -1;
-			
-			Signature sig1 = getSignature(this);
-	        Signature sig2 = getSignature(h2);
-
-	        double dist = JFastEMD.distance(sig1, sig2, -1);
-
-	        return dist;
+			if(Math.abs(total - h2.total)  > 0.00001) return -1; //TODO magic number
+			return JFastEMD.distance(this, h2, -1);	    
 		}
 		
 		// get the signature of a histogram
-		private Signature getSignature(Histogram h)
+		private void setSignature()
 	    {
 	        // compute features and weights
-			int n = h.size();
+			int n = this.heapStorage.size();
 	        State[] features = new State[n];
 	        double[] weights = new double[n];
 	        
 	        int i = 0;
-	        for(Map.Entry<State,Integer> entry : h.entrySet()) {
+	        for(Map.Entry<State,Double> entry : heapStorage.entrySet()) {
 	        	  State key = entry.getKey();
-	        	  Integer value = entry.getValue();
+	        	  Double value = entry.getValue();
 	        	  features[i] = key;
 	        	  weights[i] = value;
 	        	  i++;
-	        }
-	        
-	        Signature signature = new Signature();
-	        signature.setNumberOfFeatures(n);
-	        signature.setFeatures(features);
-	        signature.setWeights(weights);
-
-	        return signature;
+	        }	        	      
+	        setNumberOfFeatures(n);
+	        setFeatures(features);
+	        setWeights(weights);
 	    }
 	}
 	
@@ -176,13 +241,6 @@ public abstract class MDP {
 	
 	
 	
-	/**
-	 * returns the reward function for an input state-action pair
-	 * @param s : start state 
-	 * @param a : action taken
-	 * @return reward associated with this transition
-	 */
-	public abstract double R(State c, int a) throws InvalidMDPException;
 	
 	/**
 	 * returns the probability of transitioning from s to sn when taking action a
@@ -195,15 +253,23 @@ public abstract class MDP {
 	
 	
 	/**
+	 * returns the reward function for an input state-action pair
+	 * @param s : start state 
+	 * @param a : action taken
+	 * @return reward associated with this transition
+	 */
+	public abstract double R(State c, int a) throws InvalidMDPException;
+
+
+	
+	/**
 	 * Returns a histogram representing the transition from an input state under 
-	 * a given input action. Note that the transition probability is over 
-	 * clusters in a possibly different aggregate MDP
+	 * a given input action.
 	 * @param s : start state
 	 * @param a : action taken
-	 * @param m : MDP used to determine the sigma algebra for the histogram
 	 * @return an integer based histogram representing the transition map under the input s-a pair 
 	 */
-	public abstract Histogram getHistogram(State s, int a, MDP m) throws InvalidMDPException;
+	public abstract Map<State, Double> getHistogram(State s, int a) throws InvalidMDPException;
 	
 	/**
 	 * Number of states in the current MDP
@@ -224,6 +290,8 @@ public abstract class MDP {
 	 * @return an array of all states in the MDP
 	 */
 	public abstract Collection<State> getStates();
+	
+	
 	
 	
 }
