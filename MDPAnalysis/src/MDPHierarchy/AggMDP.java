@@ -325,9 +325,9 @@ public class AggMDP extends MDP{
 
 	@Override
 	public String toString() {
-		String toRet = "\n\n UNDERLYING MDP \n\n";
+		//String toRet = "\n\n UNDERLYING MDP \n\n";		
+		String toRet = "";
 		toRet += larger_mdp.toString();
-
 		toRet += "\n\n CLUSTERS \n\n";
 		for (Cluster c : all_clusts) {
 			toRet += "C-" + c.index + " ----> ";
@@ -345,9 +345,8 @@ public class AggMDP extends MDP{
 		}
 		
 		return toRet;
-	}
-
-
+	}	
+	
 
 	public static void main(String[] args) {
 		MDP m = new PuddleMDP(10);

@@ -1,5 +1,7 @@
 package SpecificMDPs;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -8,6 +10,10 @@ import java.util.Map;
 
 
 
+
+
+
+import MDPHierarchy.AggMDP;
 import MDPHierarchy.MDP;
 
 /**
@@ -382,16 +388,30 @@ public class GridMDP extends MDP{
 		return false;
 	}
 	
-	
-	/**
-	 * Simple main function to test the end product of a simple PuddleMDP
-	 * @param args: ignored
-	 */
-	public static void main(String[] args) {
-		GridMDP m = new GridMDP(30);
-		System.out.println(m);
+	public void saveMapRepresentation(String path) {
+		try{
+			PrintWriter out = new PrintWriter(path + "/map.csv");
+			
+			int[][] map = new int[W][H];
+			for (int i = 0; i < map.length; i++) {
+				for (int j = 0; j < map[i].length; j++) {
+					map[i][j] = -1;
+				}
+			}
+			for (State s : allStates) {
+				GridState ss = (GridState) s;
+				map[ss.x_coord][ss.y_coord] = s.idx();
+			}
+			for (int i = 0; i < map.length; i++) {
+				for (int j = 0; j < map[i].length; j++) {
+					out.print(map[i][j] + ((j < map[i].length - 1) ? ", " : ""));
+				}out.println();
+			}
+			out.close();
+		}catch(FileNotFoundException e) {
+			e.printStackTrace(); //TODO maybe change
+		}
 	}
 	
 	
-
 }
