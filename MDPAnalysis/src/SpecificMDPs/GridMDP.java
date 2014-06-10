@@ -388,7 +388,7 @@ public class GridMDP extends MDP{
 		return false;
 	}
 	
-	public void saveMapRepresentation(String path) {
+	public void saveMapRepresentation_old(String path) {
 		try{
 			PrintWriter out = new PrintWriter(path + "/map.csv");
 			
@@ -406,6 +406,20 @@ public class GridMDP extends MDP{
 				for (int j = 0; j < map[i].length; j++) {
 					out.print(map[i][j] + ((j < map[i].length - 1) ? ", " : ""));
 				}out.println();
+			}
+			out.close();
+		}catch(FileNotFoundException e) {
+			e.printStackTrace(); //TODO maybe change
+		}
+	}
+	
+	
+	public void saveMapRepresentation(String path) {
+		try{
+			PrintWriter out = new PrintWriter(path + "/map.csv");
+			for (State s : allStates) {
+				GridState ss = (GridState) s;
+				out.println(ss.x_coord + ", " + ss.y_coord);
 			}
 			out.close();
 		}catch(FileNotFoundException e) {

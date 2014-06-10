@@ -309,7 +309,7 @@ public abstract class MDP {
 	 */
 	public void printClMembership(AggMDP magg, PrintWriter f) {
 		for(State s : getStates()) {
-			f.println(s.index + ", " + s.getMemeber(magg).index);
+			f.println(s.getMemeber(magg).index);
 		}
 	}
 
