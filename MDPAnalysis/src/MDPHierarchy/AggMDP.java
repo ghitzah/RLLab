@@ -44,6 +44,10 @@ public class AggMDP extends MDP{
 			return c_to_s.get(0).baseState();
 		}
 		
+		public int compareTo(Cluster c) {
+			return c_to_s.size() - c.c_to_s.size();
+		}
+		
 	}
 
 	/**

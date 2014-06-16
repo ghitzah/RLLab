@@ -388,7 +388,7 @@ public class GridMDP extends MDP{
 		return false;
 	}
 	
-	public void saveMapRepresentation_old(String path) {
+	public void saveMapRepresentation(String path) {
 		try{
 			PrintWriter out = new PrintWriter(path + "/map.csv");
 			
@@ -413,10 +413,11 @@ public class GridMDP extends MDP{
 		}
 	}
 	
-	
-	public void saveMapRepresentation(String path) {
+	//same as saveMapRepresentation, but not as useful...myght use it in future
+	public void saveMapRepresentation_not_as_useful(String path) {
 		try{
 			PrintWriter out = new PrintWriter(path + "/map.csv");
+			out.println("x , y");
 			for (State s : allStates) {
 				GridState ss = (GridState) s;
 				out.println(ss.x_coord + ", " + ss.y_coord);

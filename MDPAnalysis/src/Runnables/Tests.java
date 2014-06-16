@@ -2,13 +2,18 @@ package Runnables;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Random;
 
 import MDPHierarchy.AggMDP;
+import MDPHierarchy.AggMDP.Cluster;
 import MDPHierarchy.MDP;
 import SpecificMDPs.GridMDP;
 import SpecificMDPs.PuddleMDP;
+
+import java.util.Arrays;
+
 
 public class Tests {
 	/**
@@ -76,10 +81,14 @@ public class Tests {
 				if(i==0) {
 					magg = new AggMDP(m);
 				}else {
-					Random rng = new Random();					
-					int z = rng.nextInt(magg.number_states());				
-					HashSet<AggMDP.Cluster> to_declust = new HashSet<AggMDP.Cluster>(); 
-					to_declust.add((AggMDP.Cluster) magg.getStates().toArray()[z]);
+					Object[] clso = magg.getStates().toArray();
+					AggMDP.Cluster[] clts = new AggMDP.Cluster[clso.length];
+					for (int z=0; z < clts.length; z++) {
+						clts[z] = (AggMDP.Cluster) clso[z];
+					}
+					AggMDP.Cluster z = getRandomClust(clts);
+					HashSet<AggMDP.Cluster> to_declust = new HashSet<AggMDP.Cluster>();
+					to_declust.add(z);
 					magg = new AggMDP(magg, to_declust);
 				}				
 				String ss = (i == 0) ? "R" : i + "";
@@ -93,6 +102,24 @@ public class Tests {
 				e.printStackTrace(); //TODO: maybe change this		
 			}
 		}
+	}
+	
+	private static AggMDP.Cluster getRandomClust(AggMDP.Cluster[] cls) {
+		Comparator<AggMDP.Cluster> cmp = new Comparator<AggMDP.Cluster>() {
+			@Override
+			public int compare(Cluster o1, Cluster o2) {
+				return o1.compareTo(o2);
+			}
+		};
+		Arrays.sort(cls, cmp);
+		
+		Random rng = new Random();
+		int z = rng.nextInt(2);
+		if(z == 0) {
+			return cls[cls.length-1];
+		}
+		z = rng.nextInt(Math.max(5, cls.length));
+		return cls[cls.length-1-z];
 	}
 	
 	
