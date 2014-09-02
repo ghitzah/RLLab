@@ -427,6 +427,31 @@ public class GridMDP extends MDP{
 			e.printStackTrace(); //TODO maybe change
 		}
 	}
+
+	@Override
+	public Histogram getHistogramID(int s, int a) {
+		try {
+			return new Histogram(allStates[s].getHistogram(a, this));
+		} catch (InvalidMDPException e) {
+			System.out.println("getHitogramID");
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	@Override
+	public double getRewardID(int s, int a) {
+		try {
+			return R(allStates[s], a);
+		} catch (InvalidMDPException e) {
+			System.out.println("R");
+			e.printStackTrace();
+		}
+		return 0;
+	}
+	
+	
+	
 	
 	
 }

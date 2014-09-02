@@ -472,4 +472,22 @@ public class AggMDP extends MDP{
 		System.out.println(mR);
 	}
 
+
+
+
+	@Override
+	public Histogram getHistogramID(int s, int a) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+
+
+	@Override
+	public double getRewardID(int s, int a) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

@@ -1,7 +1,6 @@
 package MDPHierarchy;
 import jFastEMD.*;
 
-
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.Collection;
@@ -9,6 +8,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import MDPHierarchy.AggMDP.Cluster;
+import ComparativeAnalysis.Metric;
+import ComparativeAnalysis.Metric.OOBException;
 
 
 
@@ -83,8 +84,21 @@ public abstract class MDP {
 			return parent;
 		}
 
+		
 		@Override
 		public double groundDist(Feature f2) {
+			State s2 = (State) f2;
+			// note the matrix D is a lower triangle matrix
+			try {
+				return met.dist(index,s2.index);
+			} catch (OOBException e) {
+				e.printS();
+				e.printStackTrace();
+				return 0;
+			}
+		}
+		
+		public double groundDistOld(Feature f2) {
 			State s2 = (State) f2;
 			// note the matrix D is a lower triangle matrix
 			if(index == s2.index) return 0;
@@ -247,9 +261,10 @@ public abstract class MDP {
 	// indexed by indices of two states
 	protected double[][] D;
 
+	public Metric met;
+	
+	
 	final double GAMMA = 0.9;
-
-
 
 
 
@@ -327,6 +342,14 @@ public abstract class MDP {
 		}
 	}
 
+	
+	//ADDED in Sept.
+	
+	public abstract Histogram getHistogramID(int s, int a);
+	public abstract double getRewardID(int s, int a);
+	public double gamma() {return GAMMA;}
+	
+	
 	
 
 }
