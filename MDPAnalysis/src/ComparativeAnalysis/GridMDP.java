@@ -1,14 +1,10 @@
-package SpecificMDPs;
+package ComparativeAnalysis;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-
-import MDPHierarchy.MDP;
 
 /**
  * Class implementing a Grid World Environment (GWE)
@@ -22,7 +18,7 @@ public class GridMDP extends MDP{
 	 * @author gcoman
 	 *
 	 */
-	public class GridState extends State {
+	public class GridState {
 		/**
 		 * y-coordinate on the grid
 		 */
@@ -33,6 +29,9 @@ public class GridMDP extends MDP{
 		 */
 		protected int x_coord;
 		
+		
+		protected int index;
+		
 		/**
 		 * Main constructor
 		 * @param mdp : the MDP associated with this state
@@ -40,8 +39,8 @@ public class GridMDP extends MDP{
 		 * @param y : y-coordinate
 		 * @param index : the index of the state as an integer from 0 to SIZE-1
 		 */
-		public GridState(MDP mdp, int x, int y, int index) {
-			super(mdp, index);
+		public GridState(MDP mdp, int x, int y, int index) {			
+			this.index = index;
 			x_coord = bound(x);
 			y_coord = bound(y);				
 		}
@@ -64,7 +63,7 @@ public class GridMDP extends MDP{
 		 */
 		protected boolean isGoal() {
 			//TODO: maybe allow for a change in goal state
-			return this.idx() == GOAL_STATE;
+			return index == GOAL_STATE;
 		}
 		
 		@Override
@@ -87,7 +86,7 @@ public class GridMDP extends MDP{
 	 * associated with that state. We assume that all probs. in the model have a total 
 	 * weight of total_sum_pm 
 	 */
-	protected ArrayList< ArrayList <Map<State, Double> > > tm; //probability model
+	protected ArrayList< ArrayList <Map<Integer, Double> > > tm; //probability model
 	
 	/**
 	 * As to avoid numerical issues, we store transition probabilities as integers,
@@ -105,7 +104,7 @@ public class GridMDP extends MDP{
 	/**
 	 * Array holding all states in this MDP
 	 */
-	protected State[] allStates;
+	protected GridState[] allStates;
 	
 	
 	/**
@@ -137,7 +136,7 @@ public class GridMDP extends MDP{
 		//set up goal state
 		GOAL_STATE = i_s - 1;
 		// set up idx_to_coords
-		allStates = new State[S];
+		allStates = new GridState[S];
 		for (int y_ax = 0; y_ax < W; y_ax++) { //y-coord
 			for (int x_ax = 0; x_ax < W; x_ax++) { //x-coord
 				if(idx_all[x_ax][y_ax] != -1) {
@@ -210,13 +209,13 @@ public class GridMDP extends MDP{
 			}//for y_ax
 		} //for i_a
 		
-		tm = new ArrayList<ArrayList<Map<State,Double>>>(A);
+		tm = new ArrayList<ArrayList<Map<Integer,Double>>>(A);
 		for (int i = 0; i < A; i++) {
-			tm.add(new ArrayList<Map<State,Double>>(S));
+			tm.add(new ArrayList<Map<Integer,Double>>(S));
 			for (int j = 0; j < S; j++) {
-				tm.get(i).add(new HashMap<State,Double>());
+				tm.get(i).add(new HashMap<Integer,Double>());
 				for(Integer k : tm_int.get(i).get(j).keySet()) {
-					tm.get(i).get(j).put(allStates[k], tm_int.get(i).get(j).get(k));
+					tm.get(i).get(j).put(k, tm_int.get(i).get(j).get(k));
 				}
 			}
 		}
@@ -224,17 +223,15 @@ public class GridMDP extends MDP{
 	}
 	
 	@Override
-	public double R(State s, int a) throws InvalidMDPException{
-		if(!s.sameMdp(this)) throw new InvalidMDPException();
-		GridState ss = (GridState) s;
+	public double R(int s, int a){
+		GridState ss = allStates[s];
 		if(ss.isGoal()) return GOAL_REWARD;
 		else return PENALTY;
 	}
 	
 	@Override
-	public double P(State s, int a, State sn /*s_next*/) throws InvalidMDPException{
-		if(!s.sameMdp(this) || !sn.sameMdp(this)) throw new InvalidMDPException();
-		Double d = tm.get(a).get(s.idx()).get(sn.idx());
+	public double P(int s, int a, int sn /*s_next*/){
+		Double d = tm.get(a).get(s).get(sn);
 		if (d == null) {
 			return 0;
 		}else {
@@ -254,19 +251,9 @@ public class GridMDP extends MDP{
 	}	
 	
 	@Override
-	public Collection<State> getStates() {
-		Collection<State> toRet = new LinkedList<State>();
-		for(State s : allStates) {
-			toRet.add(s);
-		}
-		return toRet;
-	}
-	
-	@Override
-	public Map<State,Double> getHistogram(State s, int a) throws InvalidMDPException {
-		if(!s.sameMdp(this)) throw new InvalidMDPException();
+	public Map<Integer,Double> getHistogram(int s, int a){
 		
-		int si = s.idx();
+		int si = s;
 		
 		// transition map out of input state s to the base Grid MDP
 		//Map<State, Integer> tm_s_this = tm.get(a).get(si);
@@ -278,7 +265,6 @@ public class GridMDP extends MDP{
 	
 	@Override
 	public String toString() {
-		try {
 		String toRet = "MAP\n\n\n";
 		for (int i = 0; i < idx_all.length; i++) {
 			for (int j = 0; j < idx_all[i].length; j++) {
@@ -290,7 +276,7 @@ public class GridMDP extends MDP{
 		for (int i = 0; i < A; i++) {
 			toRet += "Action " + i + " " + "\n";
 			for (int s = 0; s < S; s++) {
-				toRet += allStates[s] + " :" + this.R(allStates[s], i) + " ";
+				toRet += allStates[s] + " :" + this.R(s, i) + " ";
 			}
 			toRet += "\n";
 		}
@@ -299,7 +285,7 @@ public class GridMDP extends MDP{
 			toRet += "Action " + i + "\n";
 			for (int k = 0; k < tm.get(i).size(); k++) {
 				toRet += "S " + allStates[k] + " :" + " ---> ";
-				for (State j : tm.get(i).get(k).keySet()) {
+				for (Integer j : tm.get(i).get(k).keySet()) {
 					toRet += j + " :"
 							+ ((double) tm.get(i).get(k).get(j)) / total_sum_pm 
 							+ " ";
@@ -309,9 +295,6 @@ public class GridMDP extends MDP{
 			toRet += "\n";
 		}
 		return toRet;
-		}catch (InvalidMDPException e) {
-			return "INVALID MDP";
-		}
 	}
 	
 	/********* HELPER FUNCTIONS *******/
@@ -392,9 +375,9 @@ public class GridMDP extends MDP{
 					map[i][j] = -1;
 				}
 			}
-			for (State s : allStates) {
+			for (GridState s : allStates) {
 				GridState ss = (GridState) s;
-				map[ss.x_coord][ss.y_coord] = s.idx();
+				map[ss.x_coord][ss.y_coord] = s.index;
 			}
 			for (int i = 0; i < map.length; i++) {
 				for (int j = 0; j < map[i].length; j++) {
@@ -412,7 +395,7 @@ public class GridMDP extends MDP{
 		try{
 			PrintWriter out = new PrintWriter(path + "/map.csv");
 			out.println("x , y");
-			for (State s : allStates) {
+			for (GridState s : allStates) {
 				GridState ss = (GridState) s;
 				out.println(ss.x_coord + ", " + ss.y_coord);
 			}
@@ -421,30 +404,6 @@ public class GridMDP extends MDP{
 			e.printStackTrace(); //TODO maybe change
 		}
 	}
-
-	@Override
-	public Histogram getHistogramID(int s, int a) {
-		try {
-			return new Histogram(allStates[s].getHistogram(a, this));
-		} catch (InvalidMDPException e) {
-			System.out.println("getHitogramID");
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	@Override
-	public double getRewardID(int s, int a) {
-		try {
-			return R(allStates[s], a);
-		} catch (InvalidMDPException e) {
-			System.out.println("R");
-			e.printStackTrace();
-		}
-		return 0;
-	}
-	
-	
 	
 	
 	
