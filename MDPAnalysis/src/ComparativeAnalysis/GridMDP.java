@@ -13,6 +13,11 @@ import java.util.Map;
  */
 public class GridMDP extends MDP{
 	
+	
+	public static enum GridType {EMPTY, DEFAULT};
+	
+	
+	
 	/**
 	 * Class implementing a state in the Grid World Environment
 	 * @author gcoman
@@ -115,11 +120,20 @@ public class GridMDP extends MDP{
 	
 	
 	protected GridMDP() {GOAL_STATE = 0;} 
+		
 	
-	public GridMDP(int size) {
+	
+	public GridMDP(int size, GridType t) {
 		//initial parameters
 		W = H = size;
-		int[][] wpos = getDefaultWallPosition();		
+		
+		int[][] wpos;
+		switch(t) {
+		case EMPTY:
+			wpos = new int[0][];
+		default	:
+			wpos = getDefaultWallPosition();					
+		}
 		int[][] dirs = getDefaultDirections();
 		A = dirs.length;
 		
@@ -312,7 +326,7 @@ public class GridMDP extends MDP{
 		toRet[i++] = new int[] {0,-1};
 		return toRet;
 		
-	}
+	}	
 	
 	private int[][] getDefaultWallPosition() {
 		int[][] toRet = new int[6][]; //change this if add/remove walls!

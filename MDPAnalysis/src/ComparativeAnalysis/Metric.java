@@ -4,17 +4,21 @@ import java.lang.Exception;
 
 public class Metric {
 	
+	/**
+	 * dists: contains the distance values, but only the lower triangular part of the
+	 * distance matrix
+	 */
 	private double[] dists;
 	private int size;
 	
-	public Metric(int size) throws OOBException{ //TODO: maybe another exception
+	public Metric(int size) throws OOBException{
 		this.size = size;
 		if (size <= 0 ) throw new OOBException("Size is " + size); 
 		dists = new double[size * (size-1) / 2];
 		for (int i = 0; i < dists.length; i++) {
 			dists[i] = 0.0;
 		}
-	} //DONE
+	} 
 	
 	public double dist(int s1, int s2) throws OOBException{
 		if (!check_bounds(s1, s2)) throw new OOBException("States are " + s1 +  " "  + s2);

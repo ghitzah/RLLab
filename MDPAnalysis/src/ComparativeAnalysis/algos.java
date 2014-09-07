@@ -8,27 +8,24 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
 import java.util.TreeSet;
 
-import ComparativeAnalysis.MDP.Histogram;
 import ComparativeAnalysis.Metric.OOBException;
 
 
 public class algos {
 
-	final static double EPSILON = 0.0001;
+	final static double EPSILON = 0.000001;
 	
 	
 	public static void vanilla_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
 		if(iterations == 0) return;
 		
-		List<Metric> toRet = new LinkedList<Metric>(); //list to be returned 
 		int num_states = m.number_states(); //used often 		
 	
 		/** Perform iterations **/
 		/** First iteration based on reward **/
-		System.out.println("Iterations left " + iterations); //TODO: sysout debug
 		m.met = new Metric(num_states); // start with empty metric TODO, do as with transitions		
 		for(int s1 = 1; s1 < num_states; s1++) { //for all pairs
 			for (int s2 = 0; s2 < s1; s2++) {					
@@ -42,11 +39,10 @@ public class algos {
 				m.met.set(s1, s2, val);
 			}
 		}
-		toRet.add(m.met);
-		iterations--;
-
+		lm.add(m.met);
+		
 		/** Transition iterations**/
-		while(iterations-- > 0) {
+		while(--iterations > 0) {
 			System.out.println("Iterations left " + iterations); //TODO: sysout debug
 			Metric met = new Metric(num_states); //new metric computed synchronously
 			for(int s1 = 1; s1 < num_states; s1++) { //for all pairs
@@ -69,7 +65,7 @@ public class algos {
 					met.set(s1, s2, new_val);
 				}
 			}
-			toRet.add(met);
+			lm.add(met);
 			m.met = met;
 			//System.out.println(met); //TODO debug 
 		}
@@ -80,7 +76,7 @@ public class algos {
 	public static void declust_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
 		if(iterations == 0) return;
 		
-		List<Metric> toRet = new LinkedList<Metric>(); //list to be returned 
+		
 		int num_states = m.number_states(); //used often 		
 		
 		/** Perform iterations **/
@@ -120,7 +116,7 @@ public class algos {
 		}
 		
 		//TODO Step 1.3 add metric to toRet
-		toRet.add(partition_met_to_whole_space_met(met, membR));
+		lm.add(partition_met_to_whole_space_met(met, membR));
 		
 		
 		/** Step 2 Transitions **/
@@ -129,21 +125,18 @@ public class algos {
 		List<Cluster> clustsPr = clustsR; // previous clustering
 		
 		//Step 2.1 Iterate transition based declustering
-		while(iterations-- > 0) {
+		while(--iterations > 0) {
+			System.out.println("Iterations left " + iterations); //TODO: sysout debug
 			//Step 2.1.1 : Declustering + Set-up
 			List<Cluster> clustsCrt = new LinkedList<Cluster>();
 			
 			Cluster[] membCrt = new Cluster[num_states];
 			//decluster each cluster
+			System.out.println("Size of clustsPr " + clustsPr.size()); //TODO debug
 			for(Cluster c : clustsPr) {
-				Cluster[] membLocal = new Cluster[c.elements.size()];
-				List<Cluster> new_cls = declust_T(m, c, membLocal);
-				//update new membership
-				int z = 0;
-				for(Integer k : c.elements) {
-					membCrt[k] = membLocal[z];
-					z++;
-				}
+				//System.out.println("---Size of clusters " + c.elements.size());
+				List<Cluster> new_cls = declust_T(m, c, membCrt, membPr);
+				//System.out.println("---Number of new clusts " + new_cls.size());
 				//update new clusters
 				clustsCrt.addAll(new_cls);
 			}
@@ -156,13 +149,17 @@ public class algos {
 				c1.met = met;
 			}
 			
+			
+			System.out.println("Computing metric..."); //TODO debug
+			
+			
 			//Step 2.1.2 Compute distances
 			c1_idx = 0;
 			for(Cluster c1 : clustsCrt) {
 				int c2_idx = 0;
 				for(Cluster c2 : clustsCrt) {
 					//only compute lower triangular part of the distance metric
-					if(c2_idx == c1_idx) return;
+					if(c2_idx == c1_idx) continue;
 
 					//compute the distance between clusts
 					double val = 0;
@@ -173,8 +170,7 @@ public class algos {
 						
 						// if the reward is not the same, the update value to difference in reward
 						if(membR[s1] != membR[s2]) {
-							val_for_a = Math.abs(m.R(s1, a) 
-									- m.R(s2, a)); 
+							val_for_a = Math.abs(m.R(s1, a) - m.R(s2, a)); 
 						}
 						// add difference in transition
 						double probDistance = JFastEMD.distance(
@@ -186,17 +182,17 @@ public class algos {
 					}
 					met.set(c1_idx, c2_idx, val);
 					c2_idx++;
-				}
+				} // for c2
 				c1_idx++;
-			}	
+			} // for c1	
+			System.out.println("done computing metric...\n"); //TODO debug
 			//Step 2.1.3 Create a metric over the entire state space
-			toRet.add(partition_met_to_whole_space_met(met, membCrt));
+			lm.add(partition_met_to_whole_space_met(met, membCrt));
 		
 			//Step 2.1.4 prepare for next loop
 			membPr = membCrt;
-			clustsPr = clustsCrt;
-		
-		}
+			clustsPr = clustsCrt;				
+		} // while iterations
 	}
 	
 	
@@ -221,6 +217,26 @@ public class algos {
 	
 	 
 	private static Signature hist_stoc(Map<Integer,Double> h1, Cluster[] membership) {
+		Map<Cluster, Double> h1c = hist_clust(h1, membership);
+		
+		Signature s = new Signature();
+		s.setNumberOfFeatures(h1c.size());
+		
+		Feature[] fs = new Feature[h1c.size()];
+		double[] ds = new double[h1c.size()];
+		int z=0;
+		for(Cluster c : h1c.keySet()) {
+			fs[z] = c;
+			ds[z++] = h1c.get(c);
+		}
+		s.setFeatures(fs);
+		s.setWeights(ds);
+		
+		return s;
+	}
+	
+	
+	private static Map<Cluster, Double> hist_clust(Map<Integer,Double> h1, Cluster[] membership) {
 		Map<Cluster, Double> h1c = new HashMap<Cluster, Double>();
 
 		for(Integer si : h1.keySet()) {
@@ -230,22 +246,10 @@ public class algos {
 				h1c.put(membership[si], h1.get(si));
 			}
 		}
-		
-		Signature s = new Signature();
-		s.setNumberOfFeatures(h1c.size());
-		s.setFeatures((Feature[]) h1c.keySet().toArray());
-		
-		Double[] vals = (Double[]) h1c.values().toArray();
-		double[] valsd = new double[vals.length];
-		int z=0;
-		for(Double d : vals) { valsd[z++] = d;}
-		s.setWeights(valsd);
-		
-		
-		return s;
+		return h1c;
 	}
 	
-	private static List<Cluster> declust_T(MDP m, Cluster clarge, Cluster[] membership) {
+	private static List<Cluster> declust_T(MDP m, Cluster clarge, Cluster[] membership, Cluster[] oldMembership) {
 		List<Cluster> toRet =  new LinkedList<Cluster>();
 		/** Transitions **/
 		List<Integer> lst = new LinkedList<Integer>();
@@ -259,25 +263,29 @@ public class algos {
 			membership[i] = null;			
 			for(Cluster c : toRet) {
 				boolean toAdd = true;
-				for (int a = 0; toAdd & a < m.number_actions(); a++) {
-					Map<Integer, Double> h1 = m.getHistogram(c.elements.first(), a); 
-					Map<Integer, Double> h2 = m.getHistogram(i, a); 
+				for (int a = 0; toAdd & a < m.number_actions(); a++) {					
+					Map<Cluster, Double> h1 = hist_clust(m.getHistogram(c.elements.first(), a), oldMembership); 
+					Map<Cluster, Double> h2 = hist_clust(m.getHistogram(i, a), oldMembership); 
+					
+					//printMap(h1);
+					//printMap(h2);
+					
 					
 					toAdd = (h1.size() == h2.size());
 					if(!toAdd) break;
-					for(Integer z : h2.keySet()) {
-						toAdd = h2.containsKey(z);
+					for(Cluster z : h2.keySet()) {
+						toAdd = h1.containsKey(z);
 						if(!toAdd) break;
 					}
 					if(!toAdd) break;
-					for(Integer z : h2.keySet()) {
+					for(Cluster z : h2.keySet()) {
 						toAdd = Math.abs(h1.get(z) - h2.get(z)) < EPSILON;
 						if(!toAdd) break;
 					}
 				} // for a
 				if(toAdd) { c.elements.add(i); membership[i] = c; break; }				
 			} //for Cluster c
-			if(membership[i] != null) {
+			if(membership[i] == null) {
 				Cluster c = new Cluster();
 				c.elements.add(i);
 				membership[i] = c;
@@ -286,6 +294,14 @@ public class algos {
 		}
 		return toRet;
 	
+	}
+	
+	static void printMap(Map<Cluster,Double> mp) {
+		System.out.println("Map:");
+		for(Cluster z : mp.keySet()) {
+			System.out.println(z.elements.first() + " -> " + mp.get(z));
+		}
+		System.out.println("------------");
 	}
 	
 	
@@ -308,14 +324,22 @@ public class algos {
 				}
 				if(toAdd) { c.elements.add(i); membership[i] = c; break; }				
 			}
-			if(membership[i] != null) {
+			if(membership[i] == null) {
 				Cluster c = new Cluster();
 				c.elements.add(i);
 				membership[i] = c;
 				toRet.add(c);
 			}
 		}
-		return toRet;
+		
+//		System.out.println("I'm returning: \n");
+//		for(Cluster c : toRet) {
+//			System.out.println(c);
+//		}
+//		System.out.println(); //TODO debug
+
+		
+		return toRet; 
 	}
 	
 	
@@ -341,7 +365,49 @@ public class algos {
 				return 0;				
 			}			
 		}
+		
+		@Override
+		public String toString() {
+			String s = "Clust membs: ";
+			for(Integer i : elements) {
+				s += i + " ";
+			}
+			//s += "\n";
+			return s;
+		}
 	}
+	
+	
+	
+	
+	
+	/******* MAIN FUNCTION ******/
+	
+	public static void main(String[] args) {
+		//MDP m = new GridMDP(30, GridMDP.GridType.DEFAULT);
+		MDP m = new PuddleMDP(30);
+		//System.out.println(m);
+		List<Metric> lm = new LinkedList<Metric>();
+		try {
+			vanilla_computation(m, 8, lm);//TODO change num iters
+			//declust_computation(m, 20, lm);
+			System.out.println("main: Size lm " + lm.size());
+		}catch (OOBException e) {
+			e.printStackTrace();
+			System.out.println("Bum");
+		}
+	}
+	
+	
+	
+	public static void mainTry(String[] args) {
+		int[][] a = new int[0][];
+		for (int i = 0; i < a.length; i++) {
+			System.out.println("haha");
+		}
+	}
+
+	
 	
 	
 	
