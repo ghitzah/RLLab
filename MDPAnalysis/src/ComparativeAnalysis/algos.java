@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import java.util.TreeSet;
 
@@ -21,25 +22,11 @@ public class algos {
 	
 	public static void vanilla_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
 		if(iterations == 0) return;
-		
-		int num_states = m.number_states(); //used often 		
-	
-		/** Perform iterations **/
-		/** First iteration based on reward **/
-		m.met = new Metric(num_states); // start with empty metric TODO, do as with transitions		
-		for(int s1 = 1; s1 < num_states; s1++) { //for all pairs
-			for (int s2 = 0; s2 < s1; s2++) {					
-				double val = 0; //new value
-				for (int i = 0; i < m.number_actions(); i++) {
-					double distance = Math.abs(m.R(s1, i) - m.R(s2, i));
-					//update value for this action
-					val = (val > distance) ? val : distance; 	
-				}
-				//set the metric
-				m.met.set(s1, s2, val);
-			}
-		}
+				
+		reward_metric(m);
 		lm.add(m.met);
+		
+		int num_states = m.number_states(); //used often
 		
 		/** Transition iterations**/
 		while(--iterations > 0) {
@@ -67,10 +54,83 @@ public class algos {
 			}
 			lm.add(met);
 			m.met = met;
-			//System.out.println(met); //TODO debug 
 		}
 	}
 
+	
+	
+	private static void reward_metric(MDP m) throws OOBException {
+		int num_states = m.number_states(); //used often 		
+		
+		/** Perform iterations **/
+		/** First iteration based on reward **/
+		m.met = new Metric(num_states); // start with empty metric TODO, do as with transitions		
+		for(int s1 = 1; s1 < num_states; s1++) { //for all pairs
+			for (int s2 = 0; s2 < s1; s2++) {					
+				double val = 0; //new value
+				for (int i = 0; i < m.number_actions(); i++) {
+					double distance = Math.abs(m.R(s1, i) - m.R(s2, i));
+					//update value for this action
+					val = (val > distance) ? val : distance; 	
+				}
+				//set the metric
+				m.met.set(s1, s2, val);
+			}
+		}		
+	}
+	
+	public static void asy_state_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
+		if(iterations == 0) return;
+		
+		int num_states = m.number_states(); //used often 		
+	
+		//compute reward
+		reward_metric(m);
+		lm.add(m.met);
+		
+		
+		/** Transition iterations**/
+		while(--iterations > 0) {
+			System.out.println("Iterations left " + iterations); //TODO: sysout debug
+			
+						
+			while(--iterations > 0 ){
+				int num_of_pairs =  (num_states-1)*num_states / 2;
+				while(num_of_pairs-- > 0) {
+					//new metric computed asynchronously
+					// randomly pick two different states s1 and s2
+					
+					int[] pair = rand_pair(num_states);
+					
+					double new_val = 0; //new value
+					for (int i = 0; i < m.number_actions(); i++) {
+						//TODO maybe build these histograms otherwise
+						// Kantorovich
+						MDP.Histogram h1 = m.new Histogram(m.getHistogram(pair[0], i));
+						MDP.Histogram h2 = m.new Histogram(m.getHistogram(pair[1], i));
+						double probDistance = h1.compareToJFastEMD(h2);
+
+						//F operator
+						double distance = Math.abs(m.R(pair[0], i) - m.R(pair[1], i))  
+								+ m.gamma() * probDistance / 100.0;						
+						//update value for this action
+						new_val = (new_val > distance) ? new_val : distance; 	
+					}
+					//set the metric
+					m.met.set(pair[0], pair[1], new_val);
+				}
+				lm.add(m.met);
+			}
+		}
+	}
+
+	private static int[] rand_pair(int num_states) {
+		Random rand = new Random(); //TODO think about the choice of rng
+		int[] toRet = new int[2];
+		toRet[0] = rand.nextInt(num_states);		
+		do { toRet[1] = rand.nextInt(num_states); } while(toRet[0] == toRet[1]);
+		return toRet;
+	}
 	
 	
 	public static void declust_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
@@ -389,8 +449,8 @@ public class algos {
 		//System.out.println(m);
 		List<Metric> lm = new LinkedList<Metric>();
 		try {
-			vanilla_computation(m, 8, lm);//TODO change num iters
-			//declust_computation(m, 20, lm);
+			//vanilla_computation(m, 8, lm);//TODO change num iters
+			declust_computation(m, 20, lm);
 			System.out.println("main: Size lm " + lm.size());
 		}catch (OOBException e) {
 			e.printStackTrace();
