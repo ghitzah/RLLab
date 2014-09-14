@@ -30,7 +30,7 @@ public class algos {
 		
 		/** Transition iterations**/
 		while(--iterations > 0) {
-			System.out.println("Iterations left " + iterations); //TODO: sysout debug
+			//System.out.println("Iterations left " + iterations); //TODO: sysout debug
 			Metric met = new Metric(num_states); //new metric computed synchronously
 			for(int s1 = 1; s1 < num_states; s1++) { //for all pairs
 				for (int s2 = 0; s2 < s1; s2++) {					
@@ -91,7 +91,7 @@ public class algos {
 		
 		/** Transition iterations**/
 		while(--iterations > 0) {
-			System.out.println("Iterations left " + iterations); //TODO: sysout debug
+			//System.out.println("Iterations left " + iterations); //TODO: sysout debug
 			
 						
 			while(--iterations > 0 ){
@@ -175,8 +175,9 @@ public class algos {
 			c1_idx++;
 		}
 		
-		//TODO Step 1.3 add metric to toRet
-		lm.add(partition_met_to_whole_space_met(met, membR));
+		// Step 1.3 add metric to toRet
+		//lm.add(partition_met_to_whole_space_met(met, membR)); //TODO uncomment if
+		// want to save metric
 		
 		
 		/** Step 2 Transitions **/
@@ -186,13 +187,13 @@ public class algos {
 		
 		//Step 2.1 Iterate transition based declustering
 		while(--iterations > 0) {
-			System.out.println("Iterations left " + iterations); //TODO: sysout debug
+			//System.out.println("Iterations left " + iterations); //TODO: sysout debug
 			//Step 2.1.1 : Declustering + Set-up
 			List<Cluster> clustsCrt = new LinkedList<Cluster>();
 			
 			Cluster[] membCrt = new Cluster[num_states];
 			//decluster each cluster
-			System.out.println("Size of clustsPr " + clustsPr.size()); //TODO debug
+			//System.out.println("Size of clustsPr " + clustsPr.size()); //TODO debug
 			for(Cluster c : clustsPr) {
 				//System.out.println("---Size of clusters " + c.elements.size());
 				List<Cluster> new_cls = declust_T(m, c, membCrt, membPr);
@@ -209,7 +210,9 @@ public class algos {
 				c1.met = met;
 			}
 			
-			
+			System.out.println("num iters left " + iterations);
+			System.out.println("num clusts: " + clustsCrt.size());
+			System.out.println("num states: " + num_states);
 			System.out.println("Computing metric..."); //TODO debug
 			
 			
@@ -247,7 +250,7 @@ public class algos {
 			} // for c1	
 			System.out.println("done computing metric...\n"); //TODO debug
 			//Step 2.1.3 Create a metric over the entire state space
-			lm.add(partition_met_to_whole_space_met(met, membCrt));
+			//lm.add(partition_met_to_whole_space_met(met, membCrt)); //TODO uncomment for metric
 		
 			//Step 2.1.4 prepare for next loop
 			membPr = membCrt;

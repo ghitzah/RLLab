@@ -131,21 +131,27 @@ public class GridMDP extends MDP{
 		switch(t) {
 		case EMPTY:
 			wpos = new int[0][];
+			break;
 		default	:
 			wpos = getDefaultWallPosition();					
 		}
 		int[][] dirs = getDefaultDirections();
 		A = dirs.length;
 		
+		//.out.println(wpos.length);
+		
 		//obtain the number of states and the index at each position on the grid
 		int i_s = 0; //will monitor the index of the state work
 		idx_all = new int[W][H];
 		for (int y_ax = 0; y_ax < W; y_ax++) { //y-coord
 			for (int x_ax = 0; x_ax < W; x_ax++) { //x-coord
-				if(isWall(x_ax, y_ax, wpos)) idx_all[x_ax][y_ax] = -1;
+				if(isWall(x_ax, y_ax, wpos)) { idx_all[x_ax][y_ax] = -1; 
+				//System.out.print(".");
+				}
 				else idx_all[x_ax][y_ax] = i_s++;
 			}
 		}
+		System.out.println(i_s);
 		S = i_s;
 		//set up goal state
 		GOAL_STATE = i_s - 1;
