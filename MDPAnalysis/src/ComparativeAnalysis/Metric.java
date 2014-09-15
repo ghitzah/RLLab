@@ -1,6 +1,7 @@
 package ComparativeAnalysis;
 
 import java.lang.Exception;
+import java.util.ArrayList;
 
 public class Metric {
 	
@@ -8,29 +9,46 @@ public class Metric {
 	 * dists: contains the distance values, but only the lower triangular part of the
 	 * distance matrix
 	 */
-	private double[] dists;
+	private ArrayList<ArrayList<Double>> dists;
 	private int size;
 	
 	public Metric(int size) throws OOBException{
 		this.size = size;
-		if (size <= 0 ) throw new OOBException("Size is " + size); 
-		dists = new double[size * (size-1) / 2];
-		for (int i = 0; i < dists.length; i++) {
-			dists[i] = 0.0;
+		if (size <= 0 ) throw new OOBException("Size is " + size);
+		
+		dists = new ArrayList<ArrayList<Double>>(size-1);
+		
+		for (int i = 0; i < size-1; i++) {
+			dists.add(new ArrayList<Double>(i+1));
+			ArrayList<Double> a = dists.get(i);
+			for (int j = 0; j < i+1; j++) {
+				a.add(0.0);
+			}
 		}
 	} 
+	
+	
+	public void add_entry() {
+		dists.add(new ArrayList<Double>(size));
+		ArrayList<Double> a = dists.get(dists.size()-1);
+		for (int j = 0; j < size; j++) {
+			a.add(0.0);
+		}
+		size++;
+	}
+	
 	
 	public double dist(int s1, int s2) throws OOBException{
 		if (!check_bounds(s1, s2)) throw new OOBException("States are " + s1 +  " "  + s2);
 		if ( s1 == s2) return 0;
 		if( s1 < s2 ) { int tmp = s1; s1 = s2; s2 = tmp; } //swap
-		return dists[(s1-1)*s1/2 + s2];
+		return dists.get(s1-1).get(s2);
 	} //DONE
 	
 	public void set(int s1, int s2, double new_val) throws OOBException {
 		if (!check_bounds(s1, s2) || (s1 == s2 && new_val != 0)) throw new OOBException("States are " + s1 +  " "  + s2);
 		if( s1 < s2 ) { int tmp = s1; s1 = s2; s2 = tmp; } //swap
-		dists[(s1-1)*s1/2 + s2] = new_val;
+		dists.get(s1-1).set(s2, new_val);
 	}
 	
 	@SuppressWarnings("serial")
@@ -55,10 +73,10 @@ public class Metric {
 	@Override
 	public String toString() {
 		String ss = "";
-		for (int i = 1; i < size; i++) {
-			for (int j = 0; j < i-1; j++) {
-				ss += dists[(i-1)*i/2 + j] + " ";
-			}ss += dists[(i-1)*i/2 + i-1] + "\n";
+		for(ArrayList<Double> al : dists) {
+			for (int i = 0; i < al.size()-1; i++) {
+				ss += al.get(i) + " ";
+			}ss += al.get(al.size()-1) + "\n";
 		}
 		return ss;
 	}

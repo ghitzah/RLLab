@@ -4,13 +4,13 @@ import jFastEMD.Feature;
 import jFastEMD.JFastEMD;
 import jFastEMD.Signature;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-
 import java.util.TreeSet;
 
 import ComparativeAnalysis.Metric.OOBException;
@@ -195,7 +195,11 @@ public class algos {
 			//System.out.println("Size of clustsPr " + clustsPr.size()); //TODO debug
 			for(Cluster c : clustsPr) {
 				//System.out.println("---Size of clusters " + c.elements.size());
-				List<Cluster> new_cls = declust_T(m, c, membCrt, membPr);
+				Map<Integer,Cluster> newMembs = new TreeMap<Integer,Cluster>();
+				List<Cluster> new_cls = declust_T(m, c, newMembs, membPr);
+				for(Integer i : newMembs.keySet()) {
+					membCrt[i] = newMembs.get(i);
+				}
 				//System.out.println("---Number of new clusts " + new_cls.size());
 				//update new clusters
 				clustsCrt.addAll(new_cls);
@@ -268,13 +272,13 @@ public class algos {
 		//Step 1.1 Declustering and Set-up
 		Cluster[] membR = new Cluster[num_states];
 		List<Cluster> clustsR = declust_R(m, membR);
-		Metric met = new Metric(clustsR.size());
+		Metric metricToRet = new Metric(clustsR.size());
 		//set up the index and the metric for subsequent iterations
 		int c1_idx = 0; //index of cluster c1
 		for(Cluster c1 : clustsR) {
 			//update index and metric
 			c1.idx = c1_idx++;
-			c1.met = met;
+			c1.met = metricToRet;
 		}
 		
 		//Step 1.2 Metric computation
@@ -290,7 +294,7 @@ public class algos {
 				for (int a = 0; a < m.number_actions(); a++) {
 					val = Math.max(val, m.R(c1.elements.first(), a) - m.R(c2.elements.first(), a));
 				}
-				met.set(c1_idx, c2_idx, val);
+				metricToRet.set(c1_idx, c2_idx, val);
 				
 				//increment index
 				c2_idx++;
@@ -300,26 +304,20 @@ public class algos {
 		}
 		
 		//TODO Step 1.3 add metric to toRet
-		lm.add(partition_met_to_whole_space_met(met, membR));
+		lm.add(partition_met_to_whole_space_met(metricToRet, membR));
 		
 		
 		/** Step 2 Asynchronous Transitions **/
 		//Step 2.0 Setup for looping 
-		Cluster[] membPr = membR; //previous membership
+		Cluster[] membership = membR; //previous membership
 		
 
 		// convert the list of clusters to a tree map (index, cluster)
-		TreeMap<Integer,Cluster> clustsCrt = new TreeMap<Integer,Cluster>();
-		for(Cluster c : clustsR) {
-			clustsCrt.put(c.idx, c);
-		}
+		ArrayList<Cluster> clustsCrt = new ArrayList<Cluster>(clustsR);		
 		
-
 		//Step 2.1 Iterate transition based declustering
 		while(--iterations > 0) {
-			System.out.println("Iterations left " + iterations); //TODO: sysout debug
-
-			Cluster[] membCrt = new Cluster[num_states];
+			System.out.println("Iterations left " + iterations); //TODO: sysout debug			
 			
 			System.out.println("Size of clustsPr " + clustsCrt.size()); //TODO debug
 
@@ -329,131 +327,171 @@ public class algos {
 				//Step 2.1.1 : Declustering + Set-up
 				
 				// save for later use
-				int old_size0 = clustsCrt.size();
-				Metric old_met = clustsCrt.get(0).met;
+				int old_size0 = clustsCrt.size();				
 				
 				//randomly pick two different clusters
 				int[] pair = rand_pair(old_size0);
 
+				
+				int new_clusters_size = clustsCrt.get(pair[0]).elements.size() + 
+						clustsCrt.get(pair[1]).elements.size();
+				int num_new_pairs = ( new_clusters_size *( new_clusters_size -1))/2;
+				
+				
 				// Perform the  update for the first randomly picked cluster
-				List<Cluster> new_cls0 = declust_T(m, clustsCrt.get(pair[0]), membCrt, membPr);
+				Map<Integer,Cluster> newMembs0 = new TreeMap<Integer,Cluster>();
+				List<Cluster> new_cls0 = declust_T(m, clustsCrt.get(pair[0]), newMembs0, membership);
+				
+				for(Cluster c : new_cls0) {
+					c.met = metricToRet;
+				}
+				
 				boolean is_replaced0 = false;
 				for(Cluster c : new_cls0) {
 					if (!is_replaced0){
 						// if the old larger cluster has not been removed yet, replace it with the first sub cluster in the list
-						clustsCrt.put(pair[0], c);
+						clustsCrt.set(pair[0], c);
 						is_replaced0 = true;
 						// set the index
 						c.idx = pair[0];
 					}
 					else{
-						// else put the sub cluster at the end of the tree map
-						int index = clustsCrt.lastKey()+1;
-						clustsCrt.put(index, c);
+						// else put the sub cluster at the end of the tree map					
+						clustsCrt.add(c);
 						// set the index
-						c.idx = index;				
+						c.idx = clustsCrt.size()-1;				
 					}
 				}
 				
-				// save for later use
-				int old_size1 = clustsCrt.size();
-
 				// Perform the same update for the second randomly picked cluster
-				List<Cluster> new_cls1 = declust_T(m, clustsCrt.get(pair[1]), membCrt, membPr);
+				Map<Integer,Cluster> newMembs1 = new TreeMap<Integer,Cluster>();
+				List<Cluster> new_cls1 = declust_T(m, clustsCrt.get(pair[1]), newMembs1, membership);
+				
+
+				for(Cluster c : new_cls1) {
+					c.met = metricToRet;
+				}
+				
 				boolean is_replaced1 = false;
 				for(Cluster c : new_cls1) {
 					if (!is_replaced1){
 						// if the old larger cluster has not been removed yet, replace it with the first sub cluster in the list
-						clustsCrt.put(pair[1], c);
+						clustsCrt.set(pair[1], c);
 						is_replaced1 = true;
 						// set the index
 						c.idx = pair[1];
 					}
-					else{
+					else{						
 						// else put the sub cluster at the end of the tree map
-						// else put the sub cluster at the end of the tree map
-						int index = clustsCrt.lastKey()+1;
-						clustsCrt.put(index, c);
+						clustsCrt.add(c);
 						// set the index
-						c.idx = index;	
+						c.idx = clustsCrt.size()-1;	
 					}
 				}
 
-				// update the size of the metric associated with the tree
-				met = new Metric(clustsCrt.size());		
-				for(Map.Entry<Integer,Cluster> c1 : clustsCrt.entrySet()) {
-					//update  metric
-					c1.getValue().met = met;
+				//compute new distances
+				Metric tmp_met = new Metric(new_cls1.size() + new_cls0.size());
+				int i=0;
+				for (Cluster c1 : new_cls0) {
+					int j=0;
+					for (Cluster c2 : new_cls0) {
+						if (i == j) continue;
+						double val = dist_clusts(m, c1, c2, membership, membR);
+						tmp_met.set(i, j, val);
+						j++;
+					}
+					i++;
 				}
-
-
-				//System.out.println("Computing metric..."); //TODO debug
-
-				//Step 2.1.2 Compute distances
-				//c1_idx = 0;
-				for(Map.Entry<Integer,Cluster> c1 : clustsCrt.entrySet()) {
-					//int c2_idx = 0;
-					for(Map.Entry<Integer,Cluster> c2 : clustsCrt.entrySet()) {
-						int idx1 = c1.getKey();
-						int idx2 = c2.getKey();
-						
-						//only compute lower triangular part of the distance metric
-						if(idx2 == idx1) continue;
-						
-						//only update distance when both states are from new clusters
-						if((idx1>=old_size0 || idx1==pair[0] || idx1==pair[1]) && (idx2>=old_size0 || idx2==pair[0] || idx2==pair[1])){
-
-							//compute the distance between clusts
-							double val = 0;
-							for (int a = 0; a < m.number_actions(); a++) {
-								double val_for_a = 0;
-								int s1 = c1.getValue().elements.first();
-								int s2 = c2.getValue().elements.first();
-
-								// if the reward is not the same, the update value to difference in reward
-								if(membR[s1] != membR[s2]) {
-									val_for_a = Math.abs(m.R(s1, a) - m.R(s2, a)); 
-								}
-								// add difference in transition
-								double probDistance = JFastEMD.distance(
-										hist_stoc(m.getHistogram(s1, a), membPr), 
-										hist_stoc(m.getHistogram(s2, a), membPr), 
-										-1);
-								val_for_a += m.gamma() * probDistance / 100.0;
-								val = Math.max(val_for_a, val);
-							}
-							met.set(idx1, idx2, val);
-						}
-						// In this case, both states are from old clusters, so distance remains same
-						else if((idx1<old_size0 && idx1!=pair[0] && idx1!=pair[1] && idx2<old_size0 && idx2!=pair[0] && idx2!=pair[1])){
-							met.set(idx1,idx2, old_met.dist(idx1, idx2));
-						}
-						// The last case is that one state from old clusters, and the other is from a new cluster
-						else{
-							if(idx1 >= old_size1 || idx1 == pair[1] ) met.set(idx1,idx2, old_met.dist(idx2, pair[1]));
-							if(idx2 >= old_size1 || idx2 == pair[1] ) met.set(idx1,idx2, old_met.dist(idx1, pair[1]));
-							if((idx1 >= old_size0 && idx1 <old_size1) || idx1 == pair[0] ) met.set(idx1,idx2, old_met.dist(idx2, pair[0]));
-							if((idx2 >= old_size0 && idx2 <old_size1) || idx2 == pair[0] ) met.set(idx1,idx2, old_met.dist(idx1, pair[0]));
-						}
-					} // for c2
-				} // for c1	
+				for (Cluster c1 : new_cls1) {
+					int j=0;
+					for (Cluster c2 : new_cls0) {						
+						double val = dist_clusts(m, c1, c2, membership, membR);
+						tmp_met.set(i, j, val);
+						j++;
+					}
+					for (Cluster c2 : new_cls1) {
+						if (i == j) continue;
+						double val = dist_clusts(m, c1, c2, membership, membR);
+						tmp_met.set(i, j, val);
+						j++;
+					}
+					i++;	
+				}
+					
+				
+				//set new distances
+				for(int k=0; k < new_cls0.size() + new_cls1.size() - 2 ; k++){
+					metricToRet.add_entry();
+				}
+				i=0;
+				for (Cluster c1 : new_cls0) {
+					int j=0;
+					for (Cluster c2 : new_cls0) {
+						if (i == j) continue;
+						metricToRet.set(c1.idx, c2.idx, tmp_met.dist(i, j));
+						j++;
+					}
+					i++;
+				}
+				for (Cluster c1 : new_cls1) {
+					int j=0;
+					for (Cluster c2 : new_cls0) {												
+						metricToRet.set(c1.idx, c2.idx, tmp_met.dist(i, j));
+						j++;
+					}
+					for (Cluster c2 : new_cls1) {
+						if (i == j) continue;
+						metricToRet.set(c1.idx, c2.idx, tmp_met.dist(i, j));
+						j++;
+					}
+					i++;	
+				}
 				//System.out.println("done computing metric...\n"); //TODO debug
 				
 				
+				for(Integer k : newMembs0.keySet()) {
+					membership[k] = newMembs0.get(k);
+				}
+				for(Integer k : newMembs1.keySet()) {
+					membership[k] = newMembs1.get(k);
+				}
+				
 				// Reduce the iteration step by number of pairs in these two new clusters
-				int new_clusters_size = new_cls0.size() + new_cls1.size();
-				int num_new_pairs = ( new_clusters_size *( new_clusters_size -1))/2;
 				num_of_pairs -= num_new_pairs;
 			}
 			
 			//Step 2.1.3 Create a metric over the entire state space
-			lm.add(partition_met_to_whole_space_met(met, membCrt));
+			lm.add(partition_met_to_whole_space_met(metricToRet, membership));
 
 			//Step 2.1.4 prepare for next loop
-			membPr = membCrt;		
+			//TODO: think about this!!!
 		} // while iterations
 
 	}
+	
+	private static double dist_clusts (MDP m, Cluster c1, Cluster c2, Cluster[] membPr, Cluster[] membR) {
+		//compute the distance between clusts
+		double val = 0;
+		for (int a = 0; a < m.number_actions(); a++) {
+			double val_for_a = 0;
+			int s1 = c1.elements.first();
+			int s2 = c2.elements.first();
+
+			// if the reward is not the same, the update value to difference in reward
+			if(membR[s1] != membR[s2]) {
+				val_for_a = Math.abs(m.R(s1, a) - m.R(s2, a)); 
+			}
+			// add difference in transition
+			double probDistance = JFastEMD.distance(
+					hist_stoc(m.getHistogram(s1, a), membPr), 
+					hist_stoc(m.getHistogram(s2, a), membPr), 
+					-1);
+			val_for_a += m.gamma() * probDistance / 100.0;
+			val = Math.max(val_for_a, val);
+		}
+		return val;
+	}
+	
 	
 	private static Metric partition_met_to_whole_space_met(Metric m, Cluster[] memb) {
 		Metric toRet;
@@ -507,7 +545,7 @@ public class algos {
 		return h1c;
 	}
 	
-	private static List<Cluster> declust_T(MDP m, Cluster clarge, Cluster[] membership, Cluster[] oldMembership) {
+	private static List<Cluster> declust_T(MDP m, Cluster clarge, Map<Integer,Cluster> membership, Cluster[] oldMembership) {
 		List<Cluster> toRet =  new LinkedList<Cluster>();
 		/** Transitions **/
 		List<Integer> lst = new LinkedList<Integer>();
@@ -518,7 +556,7 @@ public class algos {
 		
 		//find clust to insert element
 		for(Integer i : lst) {
-			membership[i] = null;			
+			boolean isSet = false;			
 			for(Cluster c : toRet) {
 				boolean toAdd = true;
 				for (int a = 0; toAdd && a < m.number_actions(); a++) {					
@@ -541,12 +579,13 @@ public class algos {
 						if(!toAdd) break;
 					}
 				} // for a
-				if(toAdd) { c.elements.add(i); membership[i] = c; break; }				
+				if(toAdd) { isSet = true; c.elements.add(i); membership.put(i, c); break; }				
 			} //for Cluster c
-			if(membership[i] == null) {
+			if(!isSet) {
 				Cluster c = new Cluster();
 				c.elements.add(i);
-				membership[i] = c;
+				isSet = true;
+				membership.put(i, c);
 				toRet.add(c);
 			}
 		}
@@ -642,18 +681,19 @@ public class algos {
 	/******* MAIN FUNCTION ******/
 	
 	public static void main(String[] args) {
-		MDP m = new GridMDP(20, GridMDP.GridType.DEFAULT);
-		//MDP m = new PuddleMDP(20);
+		//MDP m = new GridMDP(20, GridMDP.GridType.DEFAULT);
+		MDP m = new PuddleMDP(30);
 		//System.out.println(m);
 		List<Metric> lm = new LinkedList<Metric>();
 		try {
-			//vanilla_computation(m, 8, lm);//TODO change num iters
+			//vanilla_computation(m, 7, lm);//TODO change num iters
 			//asy_state_computation(m,8,lm);
-			//declust_computation(m, 20, lm);
-			asy_declust_computation(m,20,lm);
+			//declust_computation(m, 7, lm);
+			asy_declust_computation(m,7,lm);
 			System.out.println("main: Size lm " + lm.size());
 		}catch (OOBException e) {
 			e.printStackTrace();
+			System.out.println(e.s);
 			System.out.println("Bum");
 		}
 	}
