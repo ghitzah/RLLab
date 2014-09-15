@@ -682,14 +682,14 @@ public class algos {
 	
 	public static void main(String[] args) {
 		//MDP m = new GridMDP(20, GridMDP.GridType.DEFAULT);
-		MDP m = new PuddleMDP(30);
+		MDP m = new PuddleMDP(70);
 		//System.out.println(m);
 		List<Metric> lm = new LinkedList<Metric>();
 		try {
 			//vanilla_computation(m, 7, lm);//TODO change num iters
 			//asy_state_computation(m,8,lm);
 			//declust_computation(m, 7, lm);
-			asy_declust_computation(m,7,lm);
+			asy_declust_computation(m,10,lm);
 			System.out.println("main: Size lm " + lm.size());
 		}catch (OOBException e) {
 			e.printStackTrace();
