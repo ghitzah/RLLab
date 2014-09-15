@@ -246,6 +246,20 @@ public class algos {
 		
 	}
 	
+	
+	public static double avg_dist(Metric m, List<Cluster> lc, int num_states) throws OOBException {
+		double toRet = 0.0;
+		
+		for (int i = 0; i < lc.size(); i++) {
+			for (int j = 0; j < i; j++) {
+				toRet += lc.get(i).elements.size() * lc.get(j).elements.size() 
+						* m.dist(i, j);
+			}
+		}
+		
+		return toRet / ((num_states-1)*num_states/2);
+	}
+	
 	public static void declust_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
 		if(iterations == 0) return;
 		
@@ -291,6 +305,10 @@ public class algos {
 		}
 		
 		// Step 1.3 add metric to toRet
+		
+		
+		System.out.println("Average distance " + prec(avg_dist(met, clustsR, num_states)));
+		
 		//lm.add(partition_met_to_whole_space_met(met, membR)); //TODO uncomment if
 		// want to save metric
 		
@@ -377,6 +395,7 @@ public class algos {
 			} // for c1	
 			System.out.println("done computing metric...\n"); //TODO debug
 			//Step 2.1.3 Create a metric over the entire state space
+			System.out.println("Average distance " + prec(avg_dist(met, clustsCrt, num_states)));
 			//lm.add(partition_met_to_whole_space_met(met, membCrt)); //TODO uncomment for metric
 		
 			//Step 2.1.4 prepare for next loop
@@ -390,6 +409,33 @@ public class algos {
 			printMembership(filename, membPr, clustsPr.size());
 		} // while iterations
 	}
+	
+	
+	private static List<Cluster> approx(Cluster[] membership, Metric m) throws OOBException {
+		double epsilon = 0.05;
+		List<Cluster> toRet = new ArrayList<Cluster>();
+		
+		List<Integer> lst = new LinkedList<Integer>();
+		for (int i = 0; i < membership.length; i++) {
+			lst.add(i);
+		}
+		java.util.Collections.shuffle(lst);
+		
+		
+		for (Integer i : lst) {
+			for (Cluster z : toRet) {
+				if(m.dist(membership[i].idx, membership[z.elements.first()].idx) < epsilon) {
+					z.elements.add(i);
+					break;
+				}
+				Cluster c = new Cluster();
+				c.elements.add(i);					
+				toRet.add(c);
+			}
+		}			
+		return toRet;
+	}
+	
 	
 	
 	public static void asy_declust_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{

@@ -42,5 +42,4 @@ public class Experiment {
 			System.out.println(m.number_states() + " " + i*i*100);
 		}
 	}
-	
 }
