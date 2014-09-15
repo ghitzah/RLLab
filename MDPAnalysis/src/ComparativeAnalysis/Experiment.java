@@ -11,13 +11,13 @@ public class Experiment {
 			MDP m = new PuddleMDP(i*10);
 			try {
 				long startTime, endTime, duration;
-				//System.out.println("Vanilla " + m.number_states() + " states start...");
+				System.out.println("Vanilla " + m.number_states() + " states start...");
 				startTime = System.currentTimeMillis();
 				List<Metric> lm = new LinkedList<Metric>();
-				//algos.vanilla_computation(m,10,lm);
+				//algos.vanilla_computation(m,15,lm);
 				endTime = System.currentTimeMillis();
 				duration = (endTime - startTime);
-				//System.out.println("Vanilla " + i*10 + " states: " + duration/1000000000);
+				System.out.println("Vanilla " + m.number_states() + " states: " + duration/1000);
 				//System.out.println("Declust " + i*10 + " states start...");
 				startTime = System.currentTimeMillis();
 				lm = new LinkedList<Metric>();

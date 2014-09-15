@@ -146,7 +146,5 @@ public abstract class MDP {
 
 	public double gamma() {return GAMMA;}
 	
-	
-	
 
 }

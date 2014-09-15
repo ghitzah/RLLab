@@ -4,6 +4,8 @@ import jFastEMD.Feature;
 import jFastEMD.JFastEMD;
 import jFastEMD.Signature;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -19,6 +21,90 @@ import ComparativeAnalysis.Metric.OOBException;
 public class algos {
 
 	final static double EPSILON = 0.000001;
+	
+
+	public static double[] value_iteration(MDP m) {
+		double[] vf = new double[m.number_states()];
+		for (int i = 0; i < vf.length; i++) {
+			vf[i] = 0;
+		}
+		
+		int iterations = 1000;
+		for (int i = 0; i < iterations; i++) {
+			double[] vf_new = new double[vf.length];
+			//compute value for each cluster
+			for (int s = 0; s < vf_new.length; s++) {
+				double val = 0;
+				// max over a
+				for (int a = 0; a < m.number_actions(); a++) {
+					double a_val = 0;					
+					// add reward
+					a_val += m.R(s, a);
+					// add probability to next state
+					Map<Integer, Double> pss = m.getHistogram(s, a); 
+					for(Integer ss : pss.keySet()) {							
+						a_val += m.gamma() * pss.get(ss) * vf[ss] / 100.0;
+					}					
+					val = Math.max(val, a_val);
+				}
+				vf_new[s] = val;
+			}
+			vf = vf_new;
+		} // for iterations
+		
+//		for (int i = 0; i < vf.length; i++) {
+//			System.out.print(prec(vf[i]) + " ");
+//		}System.out.println();
+		return vf;
+	}
+	
+	public static double[] value_iteration(MDP m, Cluster[] memb, List<Cluster> cls) {
+		double[] vf = new double[cls.size()];
+		for (int i = 0; i < vf.length; i++) {
+			vf[i] = 0;
+		}
+		
+		int iterations = 1000;
+		for (int i = 0; i < iterations; i++) {
+			double[] vf_new = new double[vf.length];
+			//compute value for each cluster
+			for (Cluster c : cls) {
+				double val = 0;
+				// max over a
+				for (int a = 0; a < m.number_actions(); a++) {
+					double a_val = 0;
+					for (Integer s : c.elements) {
+						// add reward
+						a_val += m.R(s, a);
+						// add probability to next state
+						Map<Integer, Double> pss = m.getHistogram(s, a); 
+						for(Integer ss : pss.keySet()) {							
+							a_val += m.gamma() * pss.get(ss) * vf[memb[ss].idx] / 100.0;
+						}
+					}
+					a_val /= c.elements.size(); //normalize-average out
+					val = Math.max(val, a_val);
+				}
+				vf_new[c.idx] = val;
+			}
+			vf = vf_new;
+		} // for iterations
+		
+//		for (int i = 0; i < vf.length; i++) {
+//			System.out.print(prec(vf[i]) + " ");
+//		}System.out.println();
+//		
+		return vf;
+	}
+	
+	
+	private static double prec(double d) {
+		return Double.parseDouble(String.format("%.2f", d));
+	}
+	
+	
+	
+	
 	
 	
 	public static void vanilla_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
@@ -132,8 +218,38 @@ public class algos {
 	}
 	
 	
+	
+	private static void printMembership(String filename, Cluster[] membership, int num_clusts) {		
+		try {
+			PrintWriter p = new PrintWriter(filename, "UTF-8");		
+		for (int i = 0; i < num_clusts; i++) {
+			for (int j = 0; j < membership.length-1; j++) {
+				if(membership[j].idx == i) p.write("1 ");
+				else p.write("0 ");
+			}
+			if(membership[membership.length-1].idx == i) p.write("1\n");
+			else p.write("0\n");
+		}
+		p.close();
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	public static double l_infty(double[] vf_state, double[] vf_cl, Cluster[] membs){
+		double max_err = Double.MIN_VALUE;
+		for (int i = 0; i < vf_state.length; i++) {
+			max_err = Math.max(max_err, Math.abs(vf_state[i] - vf_cl[membs[i].idx] ));
+		}
+		return max_err;
+		
+	}
+	
 	public static void declust_computation(MDP m, int iterations, List<Metric> lm) throws OOBException{
 		if(iterations == 0) return;
+		
+		double[] vf_init = value_iteration(m);
 		
 		
 		int num_states = m.number_states(); //used often 		
@@ -183,6 +299,14 @@ public class algos {
 		//Step 2.0 Setup for looping 
 		Cluster[] membPr = membR; //previous membership
 		List<Cluster> clustsPr = clustsR; // previous clustering
+		
+		int filenum = 1;
+		String filename = "decl" + num_states + "_" + filenum++ + ".txt"; 
+		printMembership(filename, membPr, clustsPr.size());
+		
+		double error = l_infty(vf_init, value_iteration(m, membPr, clustsPr), membPr);
+		System.out.println("Error is: " + prec(error));
+		
 		
 		//Step 2.1 Iterate transition based declustering
 		while(--iterations > 0) {
@@ -257,7 +381,13 @@ public class algos {
 		
 			//Step 2.1.4 prepare for next loop
 			membPr = membCrt;
-			clustsPr = clustsCrt;				
+			clustsPr = clustsCrt;	
+			
+			double error2 = l_infty(vf_init, value_iteration(m, membPr, clustsPr), membPr);
+			System.out.println("Error is: " + prec(error2));
+			
+			filename = "decl" + num_states + "_" + filenum++ + ".txt"; 
+			printMembership(filename, membPr, clustsPr.size());
 		} // while iterations
 	}
 	
@@ -682,14 +812,14 @@ public class algos {
 	
 	public static void main(String[] args) {
 		//MDP m = new GridMDP(20, GridMDP.GridType.DEFAULT);
-		MDP m = new PuddleMDP(70);
+		MDP m = new PuddleMDP(10);
 		//System.out.println(m);
 		List<Metric> lm = new LinkedList<Metric>();
 		try {
 			//vanilla_computation(m, 7, lm);//TODO change num iters
 			//asy_state_computation(m,8,lm);
-			//declust_computation(m, 7, lm);
-			asy_declust_computation(m,10,lm);
+			declust_computation(m, 7, lm);
+			//asy_declust_computation(m,10,lm);
 			System.out.println("main: Size lm " + lm.size());
 		}catch (OOBException e) {
 			e.printStackTrace();
