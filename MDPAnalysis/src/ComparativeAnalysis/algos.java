@@ -91,11 +91,12 @@ public class algos {
 		
 		/** Transition iterations**/
 		while(--iterations > 0) {
-			//System.out.println("Iterations left " + iterations); //TODO: sysout debug
+			System.out.println("Iterations left " + iterations); //TODO: sysout debug
 			
+			int num_of_pairs =  (num_states-1)*num_states / 2;
 						
 			while(--iterations > 0 ){
-				int num_of_pairs =  (num_states-1)*num_states / 2;
+				
 				while(num_of_pairs-- > 0) {
 					//new metric computed asynchronously
 					// randomly pick two different states s1 and s2
@@ -326,7 +327,7 @@ public class algos {
 			membership[i] = null;			
 			for(Cluster c : toRet) {
 				boolean toAdd = true;
-				for (int a = 0; toAdd & a < m.number_actions(); a++) {					
+				for (int a = 0; toAdd && a < m.number_actions(); a++) {					
 					Map<Cluster, Double> h1 = hist_clust(m.getHistogram(c.elements.first(), a), oldMembership); 
 					Map<Cluster, Double> h2 = hist_clust(m.getHistogram(i, a), oldMembership); 
 					
@@ -382,7 +383,7 @@ public class algos {
 			membership[i] = null;
 			for(Cluster c : toRet) {
 				boolean toAdd = true;
-				for (int a = 0; toAdd & a < m.number_actions(); a++) {
+				for (int a = 0; toAdd && a < m.number_actions(); a++) {
 					toAdd = (Math.abs(m.R(c.elements.first(),a) - m.R(i, a)) < EPSILON);
 				}
 				if(toAdd) { c.elements.add(i); membership[i] = c; break; }				
