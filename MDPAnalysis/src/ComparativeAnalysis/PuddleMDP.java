@@ -41,7 +41,7 @@ public class PuddleMDP extends GridMDP{
 	/*** Default final parameters ****/	
 	final private int DEFAULT_TOTAL_TRANSITION_WEIGHT = 100; 
 	final private double GOAL_REWARD = 0.5;
-	final private int WIDTH_LAKE = 1;
+	final private int WIDTH_LAKE = 3;
 	
 	
 	
@@ -157,10 +157,10 @@ public class PuddleMDP extends GridMDP{
 	 * 		     integers corresponding to the start and end points of the line
 	 */
 	private int[][] getDefaultWaterPosition() {
-		int[][] toRet = new int[1][];
+		int[][] toRet = new int[2][];
 		int i=0;
 		toRet[i++] = new int[] {3, 3, 3, 7};
-		//toRet[i++] = new int[] {3, 3, 7, 6};
+		toRet[i++] = new int[] {3, 7, 7, 7};
 		for (int j = 0; j < toRet.length; j++) {
 			for (int j2 = 0; j2 < toRet[j].length; j2++) {
 				toRet[j][j2] = resizeForDefaultWater(toRet[j][j2]);
