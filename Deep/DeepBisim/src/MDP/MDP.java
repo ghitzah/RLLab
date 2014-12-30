@@ -326,4 +326,41 @@ public abstract class MDP {
 		}
 	}
 	
+	
+	/**
+	 * Simple model for the exact bisimulation computation algorithm. It contains
+	 * the start state of the transition model that this object represents
+	 * @author gcoman
+	 *
+	 */
+	public class ExactStateModel extends Model {
+		public final State s;
+		
+		public ExactStateModel(State s) {
+			this.s = s;
+		}
+
+		@Override
+		public double R(Action a) {
+			return MDP.this.R(s,a);
+		}
+
+		@Override
+		public Measure T(Action a) {
+			return MDP.this.P(s,a);
+		}
+	}
+	
+	
+	/**
+	 * Class implements a Model that can be compared using such a comparator
+	 * @author gcoman
+	 */
+	public abstract class Model { 
+		public abstract double R(Action a);
+		public abstract Measure T(Action a);
+		
+		
+	}
+	
 }

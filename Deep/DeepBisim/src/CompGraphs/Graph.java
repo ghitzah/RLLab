@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
-import CompGraphs.ModelComparator.Model;
 import MDP.MDP.Feature;
 import MDP.MDP.State;
 import MDP.MDP.*;
@@ -22,8 +22,11 @@ public class Graph {
 	 * Class implementing a node in the computation graph
 	 * @author gcoman
 	 */
-	public class Node {
+	public class Node implements Comparable<Node>{
 	
+		final int idx;
+		
+		
 		/**
 		 * The label of the node
 		 */
@@ -46,6 +49,17 @@ public class Graph {
 		 */
 		Feature activation;
 
+		
+		public Node(int idx, Model label, ModelComparator modelDist, 
+				Set<Node> dependents, Feature activation) {
+			this.idx = idx;
+			this.label = label;
+			this.modelDist = modelDist;
+			this.dependents = dependents;
+			this.activation = activation;
+		}
+		
+		
 		/**
 		 * Activation at state s - based on the activation function
 		 * @param s - state for which we want to compute the activation function 
@@ -53,6 +67,25 @@ public class Graph {
 		 */
 		public double activation(State s) {
 			return activation.eval(s);
+		}
+		
+		
+		
+		/**
+		 * Return set of dependent features
+		 */
+		public Set<Feature> getDependentFeatures() {
+			TreeSet<Feature> toRet = new TreeSet<Feature>();
+			for (Node n : dependents) {
+				toRet.add(n.activation);
+			}
+			return toRet;
+		}
+
+
+		@Override
+		public int compareTo(Node o) {
+			return this.idx - o.idx;
 		}
 	}
 	
@@ -68,12 +101,12 @@ public class Graph {
 	/**
 	 * The set of all nodes
 	 */
-	Set<Node> allNodes;
+	TreeSet<Node> allNodes;
 	
 	/**
 	 * The final layer of the graph
 	 */
-	Set<Node> finalLayer;
+	TreeSet<Node> finalLayer;
 	
 	
 	/**
@@ -104,7 +137,8 @@ public class Graph {
 			Iterator<StatePair> ada = m.get_state_pair_iterator();
 			while(ada.hasNext()) {
 				StatePair p = ada.next();
-				if(n.modelDist.dist(p.s1,p.s2) < EPSILON && 
+				if(n.modelDist.dist(m.new ExactStateModel(p.s1),
+						m.new ExactStateModel(p.s1),n.getDependentFeatures()) < EPSILON && 
 					Math.abs(n.activation(p.s1) - n.activation(p.s2)) >= EPSILON) {
 						return false; 
 				} // if
