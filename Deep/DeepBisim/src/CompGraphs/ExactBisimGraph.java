@@ -143,6 +143,13 @@ public class ExactBisimGraph extends Graph{
 		} //constructor
 	} // class
 	
+	
+	/**
+	 * Simple model for the exact bisimulation computation algorithm. It contains
+	 * the start state of the transition model that this object represents
+	 * @author gcoman
+	 *
+	 */
 	public class ExactBisimModel implements Model {
 		public final State s;
 		
