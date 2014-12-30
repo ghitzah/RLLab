@@ -9,6 +9,7 @@ import MDP.MDP;
 import MDP.MDP.Action;
 import MDP.MDP.State;
 import MDP.MDP.FiniteSFeature;
+import MDP.PuddleMDP;
 
 /**
  * Class implementing the computation graph associated with the computing exact bisimulation relations
@@ -141,6 +142,18 @@ public class ExactBisimGraph extends Graph{
 			activation.add_state(s);
 			this.activation = activation;
 		} //constructor
+		
+		
+		@Override
+		public String toString() {
+			String toRet = "";
+			//TODO
+			
+			return toRet;
+		}
+		
+		
+		
 	} // class
 	
 	
@@ -157,6 +170,23 @@ public class ExactBisimGraph extends Graph{
 			this.s = s;
 		}
 	}
+	
+	
+	
+	
+	public static void main(String[] args) {
+		PuddleMDP m = new PuddleMDP(10);
+		System.out.println(m);
+		ExactBisimGraph g = new ExactBisimGraph(m);
+		
+		for (int ada = 0; ada < 10; ada++) {
+			g.addNewLayer();
+		}
+		
+	}
+	
+	
+	
 	
 	
 }
