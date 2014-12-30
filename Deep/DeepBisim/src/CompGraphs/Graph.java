@@ -92,7 +92,7 @@ public class Graph {
 		for(Node n : finalLayer) {
 			toRet.put(n, n.activation(s));
 		}
-		return null;
+		return toRet;
 	}
 	
 	/**
