@@ -1,9 +1,5 @@
 package ComparativeAnalysis;
 
-import jFastEMD.Feature;
-import jFastEMD.JFastEMD;
-import jFastEMD.Signature;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -17,6 +13,9 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import lecture1.Feature;
+import lecture1.JFastEMD;
+import lecture1.Signature;
 import ComparativeAnalysis.Metric.OOBException;
 
 

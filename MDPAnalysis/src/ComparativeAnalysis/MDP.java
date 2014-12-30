@@ -1,9 +1,8 @@
 package ComparativeAnalysis;
-import jFastEMD.*;
-
 import java.util.Map;
 import java.util.TreeMap;
 
+import lecture1.*;
 import ComparativeAnalysis.Metric.OOBException;
 
 

@@ -1,12 +1,11 @@
 package MDPHierarchy;
-import jFastEMD.*;
-
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 
+import lecture1.*;
 import MDPHierarchy.AggMDP.Cluster;
 import ComparativeAnalysis.Metric;
 import ComparativeAnalysis.Metric.OOBException;
