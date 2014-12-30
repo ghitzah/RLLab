@@ -52,10 +52,6 @@ public class algos {
 			}
 			vf = vf_new;
 		} // for iterations
-
-		//		for (int i = 0; i < vf.length; i++) {
-		//			System.out.print(prec(vf[i]) + " ");
-		//		}System.out.println();
 		return vf;
 	}
 

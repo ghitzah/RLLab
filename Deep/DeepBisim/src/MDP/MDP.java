@@ -162,7 +162,11 @@ public abstract class MDP {
 	 *
 	 */
 	public interface Measure {
-		public interface Bset { }
+		public interface Bset {
+			
+			public boolean contains(State s);
+			
+		}
 		public double eval(Bset b);
 		public double intergrate(Feature f);
 	}
