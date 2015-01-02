@@ -387,7 +387,7 @@ public class GridMDP extends MDP{
 	 * Class implementing a state for a finite Grid World
 	 * @author gcoman
 	 */
-	public class GridState implements State {
+	public class GridState extends State {
 		/**
 		 * y-coordinate on the grid
 		 */

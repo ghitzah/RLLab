@@ -19,8 +19,12 @@ public abstract class ModelComparator {
 	 * @param features :  the features that one would like to match under transition
 	 * @return : distance between model 1 and model 2
 	 */
-	public abstract double dist(Model m1, Model m2, Set<Feature> features);
+	public abstract double dist(Model m1, Model m2, Set<Feature> features) 
+			throws IncorrectModelExpection;
 	
 	
-
+	@SuppressWarnings("serial")
+	public class IncorrectModelExpection extends Exception{ }
+	
+	
 }

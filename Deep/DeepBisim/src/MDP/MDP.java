@@ -134,6 +134,9 @@ public abstract class MDP {
 	public double gamma() {return GAMMA;}
 
 	
+	private boolean checkMDP(MDP m) {
+		return this == m;
+	}
 	
 	/*******************************
 	 * CLASSES
@@ -145,15 +148,24 @@ public abstract class MDP {
 	 * @author gcoman
 	 *
 	 */
-	public interface State { }
+	public abstract class State {
+		public boolean checkMDP(MDP m) {
+			return MDP.this.checkMDP(m);
+		}
+	}
 
 	/**
 	 * Represents a feature (real valued function over the state space of the MDP)
 	 * @author gcoman
 	 *
 	 */
-	public interface Feature {
-		public double eval(State s);
+	public abstract class Feature {
+		
+		public boolean checkMDP(MDP m) {
+			return MDP.this.checkMDP(m);
+		}
+		
+		public abstract double eval(State s);
 	}
 	
 	/**
@@ -161,14 +173,12 @@ public abstract class MDP {
 	 * @author gcoman
 	 *
 	 */
-	public interface Measure {
-		public interface Bset {
-			
-			public boolean contains(State s);
-			
+	public interface  Measure {
+		public  interface  Bset {
+			public abstract boolean contains(State s);
 		}
-		public double eval(Bset b);
-		public double intergrate(Feature f);
+		public abstract double eval(Bset b);
+		public abstract double intergrate(Feature f);
 	}
 
 	/**
@@ -183,7 +193,7 @@ public abstract class MDP {
 	 * @author gcoman
 	 *
 	 */
-	public abstract class FiniteSFeature implements Feature {
+	public abstract class FiniteSFeature extends Feature {
 
 		private Set<State> all_members = new HashSet<State>();
 
@@ -204,6 +214,15 @@ public abstract class MDP {
 			}
 			return toRet;
 		}
+		
+		/**
+		 * The number of members of this feature
+		 * @return - number of members
+		 */
+		public int numberMembers() {
+			return all_members.size();
+		}
+		
 		
 		/**
 		 * Returns true is the given state is a member of the feature
@@ -365,6 +384,17 @@ public abstract class MDP {
 		public abstract Measure T(Action a);
 		
 		
+		public boolean checkMDP(MDP m) {
+			return (MDP.this == m);
+		}
+		
 	}
+	
+	
+	/**
+	 * Exception for MDP membership
+	 */
+	@SuppressWarnings("serial")
+	public class IncorrectMDPException extends Exception { }
 	
 }

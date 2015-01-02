@@ -5,7 +5,7 @@ import java.util.Random;
 
 public class Continuous2d extends MDP{
 
-	public class Cont2DState implements State {
+	public class Cont2DState extends State {
 		 /**
 		  *  y-coordinate on the grid
 		  */
@@ -20,7 +20,6 @@ public class Continuous2d extends MDP{
 		 * Main constructor
 		 * @param x : x-coordinate
 		 * @param y : y-coordinate
-		 * @param index : the index of the state as an integer from 0 to SIZE-1
 		 */
 		public Cont2DState(double x, double y) {
 			x_coord = bound(x);
@@ -83,8 +82,6 @@ public class Continuous2d extends MDP{
 		allActions[1] = new DirectinalAction(0, RADIUS_OF_MOVEMENT);
 		allActions[2] = new DirectinalAction(-RADIUS_OF_MOVEMENT, 0);
 		allActions[3] = new DirectinalAction(0, -RADIUS_OF_MOVEMENT);
-		
-		//TODO
 	}
 	
 	@Override

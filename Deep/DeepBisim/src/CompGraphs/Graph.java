@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import CompGraphs.ModelComparator.IncorrectModelExpection;
 import MDP.MDP.Feature;
 import MDP.MDP.State;
 import MDP.MDP.*;
@@ -17,7 +18,6 @@ public class Graph {
 	 * CLASSES
 	 ********************/
 	
-	
 	/**
 	 * Class implementing a node in the computation graph
 	 * @author gcoman
@@ -26,11 +26,10 @@ public class Graph {
 	
 		final int idx;
 		
-		
 		/**
 		 * The label of the node
 		 */
-		Model label;
+		final Model label;
 		
 		/**
 		 * Model distance comparator that can be used when computing 
@@ -42,20 +41,27 @@ public class Graph {
 		 * Dependents that can be used when computing 
 		 * the activation of this function
 		 */
-		Set<Node> dependents;
+		Set<Node> progenitors;
 		
 		/**
 		 * Activation function
 		 */
 		Feature activation;
 
-		
+		/**
+		 * Main constructor
+		 * @param idx :  index of node in the graph - used for presentation
+		 * @param label : the model that this node is representing
+		 * @param modelDist : the distance function used to compare models
+		 * @param progenitors : progenitor nodes in the graph
+		 * @param activation : the feature that this node represents
+		 */
 		public Node(int idx, Model label, ModelComparator modelDist, 
-				Set<Node> dependents, Feature activation) {
+				Set<Node> progenitors, Feature activation) {
 			this.idx = idx;
 			this.label = label;
 			this.modelDist = modelDist;
-			this.dependents = dependents;
+			this.progenitors = progenitors;
 			this.activation = activation;
 		}
 		
@@ -63,12 +69,11 @@ public class Graph {
 		/**
 		 * Activation at state s - based on the activation function
 		 * @param s - state for which we want to compute the activation function 
-		 * @return
+		 * @return : the activation of this feature at s
 		 */
 		public double activation(State s) {
 			return activation.eval(s);
 		}
-		
 		
 		
 		/**
@@ -76,7 +81,7 @@ public class Graph {
 		 */
 		public Set<Feature> getDependentFeatures() {
 			TreeSet<Feature> toRet = new TreeSet<Feature>();
-			for (Node n : dependents) {
+			for (Node n : progenitors) {
 				toRet.add(n.activation);
 			}
 			return toRet;
@@ -88,6 +93,8 @@ public class Graph {
 			return this.idx - o.idx;
 		}
 	}
+	
+	
 	
 	/*********************
 	 * MEMBER VARIABLES
@@ -120,7 +127,9 @@ public class Graph {
 	 * @param s - the state for which we want to compute the activation
 	 * @return - the activation value for each node
 	 */
-	public Map<Node,Double> lastLayer(State s) {
+	public Map<Node,Double> lastLayer(State s) 
+			throws MDP.IncorrectMDPException{
+		if(!s.checkMDP(m)) throw m.new IncorrectMDPException();
 		HashMap<Node, Double> toRet = new HashMap<Node, Double>();
 		for(Node n : finalLayer) {
 			toRet.put(n, n.activation(s));
@@ -137,13 +146,29 @@ public class Graph {
 			Iterator<StatePair> ada = m.get_state_pair_iterator();
 			while(ada.hasNext()) {
 				StatePair p = ada.next();
-				if(n.modelDist.dist(m.new ExactStateModel(p.s1),
-						m.new ExactStateModel(p.s1),n.getDependentFeatures()) < EPSILON && 
-					Math.abs(n.activation(p.s1) - n.activation(p.s2)) >= EPSILON) {
-						return false; 
+				try {
+					if(n.modelDist.dist(m.new ExactStateModel(p.s1),
+							m.new ExactStateModel(p.s1),n.getDependentFeatures()) < EPSILON && 
+						Math.abs(n.activation(p.s1) - n.activation(p.s2)) >= EPSILON) {
+							return false; 
+					}
+				} catch (IncorrectModelExpection e) {
+					System.err.println("Can't go wrong here");
+					e.printStackTrace();
 				} // if
 			} // while
 		} // for 
 		return true;
 	}
+
+	
+	public int graphSize() {
+		return (allNodes == null) ? 0 : allNodes.size();
+	}
+	
+	public int representationSize() {
+		return (finalLayer == null) ? 0 : finalLayer.size();
+	}
+	
+
 }
