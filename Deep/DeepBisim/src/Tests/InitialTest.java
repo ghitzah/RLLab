@@ -8,6 +8,7 @@ import CompGraphs.DeclustGraph.AlgorithmicException;
 import CompGraphs.ExactBisimGraph;
 import CompGraphs.Graph;
 import MDP.GridMDP;
+import MDP.PuddleMDP;
 
 public class InitialTest {
 	public static void main(String[] args) {
@@ -15,10 +16,11 @@ public class InitialTest {
 		int sizeGrid = 30;
 		int iterations = 10;
 		
-		GridMDP m = new GridMDP(sizeGrid, GridMDP.GridType.DEFAULT);
+		GridMDP m = new PuddleMDP(sizeGrid);
+				//new GridMDP(sizeGrid, GridMDP.GridType.DEFAULT);
 		//System.out.println(m);
 		LinkedList<ExactBisimGraph> gset = new LinkedList<ExactBisimGraph>();
-		gset.add(new ExactBisimGraph(m));
+		//gset.add(new ExactBisimGraph(m));
 		gset.add(new DeclustGraph(m));
 		gset.add(new ASynchDeclustGraph(m));
 		gset.add(new ASynchDeclustGraph(m, ASynchDeclustGraph.HeuristicType.RANDOM_PAIR));

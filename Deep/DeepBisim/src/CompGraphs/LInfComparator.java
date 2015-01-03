@@ -45,11 +45,13 @@ public class LInfComparator extends ModelComparator{
 			double diffR = Math.abs(m1.R(a)-m2.R(a));
 			// max dist over all features
 			double diffT = 0.0;
-			for(Feature f : features) {
-				double tmp = m1.T(a).intergrate(f) 
-							  - m2.T(a).intergrate(f);
-				diffT = Math.max(diffT, Math.abs(tmp));
-			} // for
+			if(features != null) {
+				for(Feature f : features) {
+					double tmp = m1.T(a).intergrate(f) 
+								  - m2.T(a).intergrate(f);
+					diffT = Math.max(diffT, Math.abs(tmp));
+				} // for
+			}
 			d = Math.max(d, diffR + m.gamma() * diffT); //gamma ?
 		}
 		return d;

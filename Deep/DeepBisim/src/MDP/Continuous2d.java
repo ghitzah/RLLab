@@ -206,7 +206,8 @@ public class Continuous2d extends MDP{
 	public int number_actions() {
 		return A;
 	}
-
+ 
 	
+	public class ContinuousException extends Exception{ }
 	
 }

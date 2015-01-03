@@ -25,7 +25,7 @@ public class ExactBisimGraph extends Graph{
 	 * @param m : MDP for which we compute bisimulation 
 	 */
 	public ExactBisimGraph(MDP m) {
-		this.m = m;
+		super(m);
 		
 		/**CREATE THE FIRST LAYER BASED ON REWARD*/
 		

@@ -53,7 +53,8 @@ public abstract class MDP {
 	 */
 	public abstract Measure P(State s, Action a);
 	
-
+	
+	
 	/**
 	 * GETTER: the measure probability of transitioning from s 
 	 * @param s : start state 
@@ -161,11 +162,13 @@ public abstract class MDP {
 	 */
 	public abstract class Feature {
 		
-		public boolean checkMDP(MDP m) {
-			return MDP.this.checkMDP(m);
-		}
-		
+		/**
+		 * evaluate the feature at a given state
+		 * @param s - state at which we evaluate it
+		 * @return : a real value associated with the given state
+		 */
 		public abstract double eval(State s);
+		
 	}
 	
 	/**
@@ -173,12 +176,33 @@ public abstract class MDP {
 	 * @author gcoman
 	 *
 	 */
-	public interface  Measure {
-		public  interface  Bset {
-			public abstract boolean contains(State s);
+	public abstract class  Measure {
+		/**
+		 * The total measure (as we will use a finite total mass)
+		 */
+		int totalMeasure;
+		
+		/**
+		 * Relative intiger mass associated with every state - if the state
+		 * is not a key in this map, then the state has 0 mass associated to it
+		 */
+		Map<State,Integer> indiv_measures;
+		
+		
+		public abstract boolean finiteInteger();
+		
+		public double intergrate(Feature f){
+			if (finiteInteger()) {
+				double d = 0;
+				for(State s : indiv_measures.keySet()) {
+					Integer ada = indiv_measures.get(s);
+					d += ada * f.eval(s); 
+				}
+				return d / totalMeasure ;
+			} else {
+				return 0; //TODO
+			}
 		}
-		public abstract double eval(Bset b);
-		public abstract double intergrate(Feature f);
 	}
 
 	/**

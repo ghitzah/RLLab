@@ -1,6 +1,7 @@
 package CompGraphs;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -80,7 +81,7 @@ public class Graph {
 		 * Return set of dependent features
 		 */
 		public Set<Feature> getDependentFeatures() {
-			TreeSet<Feature> toRet = new TreeSet<Feature>();
+			HashSet<Feature> toRet = new HashSet<Feature>();
 			for (Node n : progenitors) {
 				toRet.add(n.activation);
 			}
@@ -114,6 +115,16 @@ public class Graph {
 	 * The final layer of the graph
 	 */
 	TreeSet<Node> finalLayer;
+	
+	
+	
+	public Graph(MDP m) {
+		this.m = m;
+		allNodes = new TreeSet<>();
+		finalLayer = new TreeSet<>();
+	}
+	
+	
 	
 	
 	/**

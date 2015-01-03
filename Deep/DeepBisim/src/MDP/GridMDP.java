@@ -69,6 +69,10 @@ public class GridMDP extends MDP{
 			CONSTRUCTORS
 	 * ******************************/
 
+	public GridMDP(int size) {
+		this(size, GridType.DEFAULT);
+	}
+	
 
 	public GridMDP(int size, GridType t) {
 		//initial parameters
