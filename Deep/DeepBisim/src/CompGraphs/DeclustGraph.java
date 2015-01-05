@@ -9,7 +9,8 @@ import java.util.TreeSet;
 import MDP.MDP;
 import MDP.MDP.Action;
 import MDP.MDP.ExactStateModel;
-import MDP.MDP.FiniteSFeature;
+import MDP.MDP.Cluster;
+import MDP.MDP.Measure.CannotDoExactExeption;
 import MDP.MDP.Model;
 import MDP.MDP.State;
 
@@ -62,7 +63,7 @@ public class DeclustGraph extends ExactBisimGraph{
 			// result of the declustering process will be saved here
 			Set<Node> declusteringNodes = new HashSet<Node>(); 
 			
-			FiniteSFeature f = (FiniteSFeature) nodePrevLayer.activation;
+			Cluster f = (Cluster) nodePrevLayer.activation;
 			
 			if( f.numberMembers() == 0) throw new AlgorithmicException();
 			
@@ -86,14 +87,23 @@ public class DeclustGraph extends ExactBisimGraph{
 					while(ada.hasNext()) {
 						Action a  = ada.next();
 						for(Node prevNode : prevLayer) {
-							double tmp = modelIteratedState.T(a).intergrate(prevNode.activation) 
-										  - savedModel.T(a).intergrate(prevNode.activation);
+							double tmp;
+							try {
+								tmp = modelIteratedState.T(a).integrateExact(prevNode.activation) 
+											  - savedModel.T(a).integrateExact(prevNode.activation);
+							} catch (CannotDoExactExeption e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+								assert(false);
+								return;
+							}
+							
 							if(tmp > EPSILON) { sameModel = false; break; }
 						} // for
 					} // while
 					if(sameModel) { // if we found a clust with the same model
 						newNode = false; // no need to creat a new node
-						((FiniteSFeature) nClust.activation).add_state(iteratedState);
+						((Cluster) nClust.activation).add_state(iteratedState);
 						break;
 					}
 				}

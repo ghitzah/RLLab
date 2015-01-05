@@ -21,7 +21,7 @@ public class Continuous2d extends MDP{
 		 * @param x : x-coordinate
 		 * @param y : y-coordinate
 		 */
-		public Cont2DState(double x, double y) {
+		public Cont2DState(double x, double y)  {
 			x_coord = bound(x);
 			y_coord = bound(y);				
 		}
@@ -41,6 +41,14 @@ public class Continuous2d extends MDP{
 		public double dist_sq(Cont2DState s) {
 			return (x_coord - s.x_coord) * (x_coord - s.x_coord) + 
 					(y_coord - s.y_coord) * (y_coord - s.y_coord);
+		}
+		
+		
+		@Override
+		public boolean equals(Object obj) {
+			double EPSILON = 0.000001;
+			Cont2DState o = (Cont2DState) obj;
+			return (x_coord - o.x_coord) < EPSILON && (y_coord - o.y_coord) < EPSILON;
 		}
 	}
 	
@@ -94,27 +102,9 @@ public class Continuous2d extends MDP{
 		final DirectinalAction ad = (DirectinalAction) a;
 		final Cont2DState sc = (Cont2DState) s;
 		return new Measure() {
-
-			final int NUM_SAMPLES = 100;
-				
 			@Override
-			public double eval(Bset b) {
-				int count = 0;
-				for (int i = 0; i < NUM_SAMPLES; i++) {
-					if(b.contains(ad.get_sample(sc))) {
-						count++;
-					}
-				}
-				return ((double) count) / NUM_SAMPLES; 
-			}
-
-			@Override
-			public double intergrate(Feature f) {
-				double count = 0;
-				for (int i = 0; i < NUM_SAMPLES; i++) {
-					count +=f.eval(ad.get_sample(sc));
-				}
-				return count / NUM_SAMPLES;
+			public State sample() {
+				return ad.get_sample(sc);
 			}
 		};
 	}
@@ -207,7 +197,7 @@ public class Continuous2d extends MDP{
 		return A;
 	}
  
-	
+	@SuppressWarnings("serial")
 	public class ContinuousException extends Exception{ }
 	
 }

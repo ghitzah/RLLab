@@ -8,10 +8,11 @@ import java.util.TreeSet;
 import CompGraphs.DeclustGraph.AlgorithmicException;
 import MDP.MDP;
 import MDP.MDP.Action;
+import MDP.MDP.Cluster;
 import MDP.MDP.ExactStateModel;
+import MDP.MDP.Measure.CannotDoExactExeption;
 import MDP.MDP.Model;
 import MDP.MDP.State;
-import MDP.MDP.FiniteSFeature;
 
 /**
  * Class implementing the computation graph associated with the computing exact bisimulation relations
@@ -61,7 +62,7 @@ public class ExactBisimGraph extends Graph{
 				
 				if(sameModel) { // if we found a clust with the same model
 					newNode = false; // no need to creat a new node
-					((FiniteSFeature) nFinalLayer.activation).add_state(iteratedState);
+					((Cluster) nFinalLayer.activation).add_state(iteratedState);
 					break;
 				}
 			} // for
@@ -112,14 +113,20 @@ public class ExactBisimGraph extends Graph{
 					double diffR = Math.abs(modelIteratedState.R(a)-savedModel.R(a));
 					if(diffR > EPSILON) { sameModel = false; break; }
 					for(Node nodePrevLayer : prevLayer) {
-						double tmp = modelIteratedState.T(a).intergrate(nodePrevLayer.activation) 
-									  - savedModel.T(a).intergrate(nodePrevLayer.activation);
+						double tmp;
+						try {
+							tmp = modelIteratedState.T(a).integrateExact(nodePrevLayer.activation) 
+										  - savedModel.T(a).integrateExact(nodePrevLayer.activation);
+						} catch (CannotDoExactExeption e) {
+							e.printStackTrace();
+							return;
+						}
 						if(tmp > EPSILON) { sameModel = false; break; }
 					} // for
 				} // while
 				if(sameModel) { // if we found a clust with the same model
 					newNode = false; // no need to creat a new node
-					((FiniteSFeature) nFinalLayer.activation).add_state(iteratedState);
+					((Cluster) nFinalLayer.activation).add_state(iteratedState);
 					break;
 				}
 			} // for
@@ -142,7 +149,7 @@ public class ExactBisimGraph extends Graph{
 	public String toString() {
 		String toRet = "\n\nGRAPH!!\n\n";
 		for(Node n : allNodes) {
-			FiniteSFeature f = (FiniteSFeature) n.activation;
+			Cluster f = (Cluster) n.activation;
 			toRet += "Node " + n.idx + ": " + f.all_members().size() + " members\n";
 			toRet += "---Dependents: ";
 			for (Node m : n.progenitors) {
@@ -170,16 +177,7 @@ public class ExactBisimGraph extends Graph{
 				null /* activation function - below*/);
 			
 			// activation function 
-			FiniteSFeature activation = m.new FiniteSFeature() {
-
-				@Override
-				public double eval(State s) {
-					return  contains(s) ? 1.0 : 0.0;
-				}
-
-				@Override
-				public boolean isBinary() { return true;}
-			}; 
+			Cluster activation = m.new Cluster();
 			activation.add_state(s);
 			this.activation = activation;
 		} //constructor

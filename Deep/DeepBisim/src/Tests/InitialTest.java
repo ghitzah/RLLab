@@ -13,17 +13,17 @@ import MDP.PuddleMDP;
 public class InitialTest {
 	public static void main(String[] args) {
 		
-		int sizeGrid = 30;
+		int sizeGrid = 10;
 		int iterations = 10;
 		
-		GridMDP m = new PuddleMDP(sizeGrid);
+		GridMDP m = new GridMDP(sizeGrid);
 				//new GridMDP(sizeGrid, GridMDP.GridType.DEFAULT);
 		//System.out.println(m);
 		LinkedList<ExactBisimGraph> gset = new LinkedList<ExactBisimGraph>();
-		//gset.add(new ExactBisimGraph(m));
-		gset.add(new DeclustGraph(m));
-		gset.add(new ASynchDeclustGraph(m));
-		gset.add(new ASynchDeclustGraph(m, ASynchDeclustGraph.HeuristicType.RANDOM_PAIR));
+		gset.add(new ExactBisimGraph(m));
+		//gset.add(new DeclustGraph(m));
+		//gset.add(new ASynchDeclustGraph(m));
+		//gset.add(new ASynchDeclustGraph(m, ASynchDeclustGraph.HeuristicType.RANDOM_PAIR));
 		for(ExactBisimGraph g : gset) {
 			printInfo(g);
 			for (int ada = 0; ada < iterations; ada++) {

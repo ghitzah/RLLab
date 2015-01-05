@@ -177,32 +177,43 @@ public abstract class MDP {
 	 *
 	 */
 	public abstract class  Measure {
-		/**
-		 * The total measure (as we will use a finite total mass)
-		 */
-		int totalMeasure;
+		
+		final int NUM_SAMPLES = 100;
 		
 		/**
 		 * Relative intiger mass associated with every state - if the state
 		 * is not a key in this map, then the state has 0 mass associated to it
 		 */
 		Map<State,Integer> indiv_measures;
+		/**
+		 * The total measure (as we will use a finite total mass)
+		 */
+		int totalMeasure;
 		
+		@SuppressWarnings("serial")
+		public class CannotDoExactExeption extends Exception { }
 		
-		public abstract boolean finiteInteger();
-		
-		public double intergrate(Feature f){
-			if (finiteInteger()) {
-				double d = 0;
-				for(State s : indiv_measures.keySet()) {
-					Integer ada = indiv_measures.get(s);
-					d += ada * f.eval(s); 
-				}
-				return d / totalMeasure ;
-			} else {
-				return 0; //TODO
+		public double integrateExact(Feature f) throws CannotDoExactExeption {
+			if(indiv_measures == null) throw new CannotDoExactExeption();
+			double d = 0;
+			for(State s : indiv_measures.keySet()) {
+				Integer ada = indiv_measures.get(s);
+				d += ada * f.eval(s); 
 			}
+			return d / totalMeasure ;
 		}
+		
+		 public double integrateSampled(Feature f) {
+			double count = 0;
+			for (int i = 0; i < NUM_SAMPLES; i++) {
+				count +=f.eval(sample());
+			}
+			return count / NUM_SAMPLES;
+		}
+		
+		public abstract State sample();
+		
+		
 	}
 
 	/**
@@ -211,21 +222,16 @@ public abstract class MDP {
 	 */	
 	public interface Action { }
 
+	
 	/**
 	 * Class representing a feature for a finite state space MDP - it provides functionality 
 	 * to have binary features (activated to 1 over a subset, and 0 everywhere else)
 	 * @author gcoman
 	 *
 	 */
-	public abstract class FiniteSFeature extends Feature {
+	public class Cluster extends Feature {
 
 		private Set<State> all_members = new HashSet<State>();
-
-		/**
-		 * Returns true if this feature can be used as a binary feature
-		 * @return TRUE if binary
-		 */
-		public abstract boolean isBinary();
 
 		/**
 		 * All the states that are members of this feature (are activated as 1)
@@ -272,92 +278,12 @@ public abstract class MDP {
 		public void remove_state(State s) {
 			all_members.remove(s);
 		}
-	}
-	
-	/**
-	 * Class implement an action for an MDP with a finite number of actions
-	 * @author gcoman
-	 *
-	 */
-	public class FiniteAction implements Action{
-		private int idx;
-		
-		public FiniteAction(int idx) {
-			this.idx = idx;
-		}
-
-		/**
-		 * The index of the action in the action set
-		 * @return - the index of the action 
-		 */
-		public int idx() {
-			return idx;
-		}
-	}
-
-	
-	/**
-	 * Class implementing a measure over a finite state space
-	 * @author gcoman
-	 *
-	 */
-	public class FiniteSMeasure implements Measure{
-
-		/**
-		 * The total measure (as we will use a finite total mass)
-		 */
-		int totalMeasure;
-		
-		/**
-		 * Relative intiger mass associated with every state - if the state
-		 * is not a key in this map, then the state has 0 mass associated to it
-		 */
-		Map<State,Integer> indiv_measures;
-
-		/**
-		 * Class implementing a Borel set  in a finite state space
-		 * @author gcoman
-		 *
-		 */
-		public class FiniteSBSet extends FiniteSFeature implements Bset{
-
-			@Override
-			public double eval(State s) { return contains(s) ? 1.0 : 0.0; }
-
-			@Override
-			public boolean isBinary() { return true; }
-
-		}
-
-		
-		@Override
-		public double intergrate(Feature f) {
-			FiniteSFeature fg = (FiniteSFeature) f;
-			if(fg.isBinary()) {
-				int d = 0;
-				for(State s : fg.all_members()) {
-					Integer ada = indiv_measures.get(s);
-					if(ada != null) { d += ada; }
-				}
-				return ((double) d) / totalMeasure ;
-			}else {
-				double d = 0;
-				for(State s : indiv_measures.keySet()) {
-					Integer ada = indiv_measures.get(s);
-					d += ada * fg.eval(s); 
-				}
-				return d / totalMeasure ;
-			}
-
-		}
 
 		@Override
-		public double eval(Bset b) {
-			Feature f = (FiniteSBSet) b;
-			return intergrate(f);
+		public double eval(State s) {
+			return (contains(s)) ? 1.0 : 0.0;
 		}
 	}
-	
 	
 	/**
 	 * Class implementing a simple pair of states

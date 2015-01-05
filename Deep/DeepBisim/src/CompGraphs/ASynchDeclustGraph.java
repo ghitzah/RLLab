@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import MDP.MDP;
-import MDP.MDP.FiniteSFeature;
+import MDP.MDP.Cluster;
 
 /**
  * Class implementing a computation graph for a desclustering algorithm
@@ -80,8 +80,8 @@ public class ASynchDeclustGraph extends DeclustGraph{
 					TreeSet<Node> selections = new TreeSet<Node>(new Comparator<Node>() {
 						@Override
 						public int compare(Node o1, Node o2) {
-							return ((FiniteSFeature) o2.activation).numberMembers() 
-									- ((FiniteSFeature) o1.activation).numberMembers();
+							return ((Cluster) o2.activation).numberMembers() 
+									- ((Cluster) o1.activation).numberMembers();
 						}
 					});
 					for(Node n : allNodes) {

@@ -219,16 +219,24 @@ public class GridMDP extends MDP{
 
 	@Override
 	public Measure P(State c, Action a) {
-		FiniteSMeasure gm = new FiniteSMeasure();
-		gm.totalMeasure = total_sum_pm;
-		gm.indiv_measures = new HashMap<State, Integer>();
-
+		HashMap<State, Integer> tmpIndivMeasures = new HashMap<State, Integer>();
 		GridState sg = (GridState) c;
 		FiniteAction ag = (FiniteAction) a;
 		Map<Integer,Integer> tmtmp = tm.get(ag.idx()).get(sg.idx); 
 		for(Integer ada : tmtmp.keySet()) {
-			gm.indiv_measures.put(allStates[ada], tmtmp.get(ada));
+			tmpIndivMeasures.put(allStates[ada], tmtmp.get(ada));
 		}
+		
+		Measure gm = new Measure() {
+			@Override
+			public State sample() {
+				// TODO Auto-generated method stub
+				return null;
+			}			
+		};
+		gm.totalMeasure = total_sum_pm;
+		gm.indiv_measures = new HashMap<State, Integer>();
+		
 		return gm;
 	}
 

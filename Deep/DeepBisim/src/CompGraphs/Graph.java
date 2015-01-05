@@ -93,6 +93,11 @@ public class Graph {
 		public int compareTo(Node o) {
 			return this.idx - o.idx;
 		}
+		
+		public double dist(Model m) throws IncorrectModelExpection {
+			return modelDist.dist(m, label, getDependentFeatures());
+		}
+		
 	}
 	
 	
