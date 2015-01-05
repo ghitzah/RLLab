@@ -52,6 +52,7 @@ public class ASynchDeclustGraph extends DeclustGraph{
 					Set<Integer> selections = new HashSet<Integer>();
 					for (int ada = 0; ada < selectionSizeTmp; ada++) {
 						int newInt = r1.nextInt(size);
+						//TODO select a random subset of integers (library exists?)
 						while(selections.contains(newInt)) 
 							newInt = r1.nextInt(size);
 						selections.add(newInt);
