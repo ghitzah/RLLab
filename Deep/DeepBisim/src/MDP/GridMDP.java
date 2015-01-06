@@ -226,18 +226,7 @@ public class GridMDP extends MDP{
 		for(Integer ada : tmtmp.keySet()) {
 			tmpIndivMeasures.put(allStates[ada], tmtmp.get(ada));
 		}
-		
-		Measure gm = new Measure() {
-			@Override
-			public State sample() {
-				// TODO Auto-generated method stub
-				return null;
-			}			
-		};
-		gm.totalMeasure = total_sum_pm;
-		gm.indiv_measures = new HashMap<State, Integer>();
-		
-		return gm;
+		return new Measure(tmpIndivMeasures, total_sum_pm);
 	}
 
 	@Override

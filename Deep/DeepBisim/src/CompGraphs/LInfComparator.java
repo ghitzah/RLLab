@@ -60,6 +60,7 @@ public class LInfComparator extends ModelComparator{
 								m1.T(a).integrateSampled(f) - m2.T(a).integrateSampled(f)
 							: m1.T(a).integrateExact(f) - m2.T(a).integrateExact(f);
 					} catch (CannotDoExactExeption e) {
+						System.out.println("PROBLEM");
 						throw new IncorrectModelExpection();
 					}
 					diffT = Math.max(diffT, Math.abs(tmp));

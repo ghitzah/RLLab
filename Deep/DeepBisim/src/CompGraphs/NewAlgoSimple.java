@@ -2,8 +2,8 @@ package CompGraphs;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import CompGraphs.DeclustGraph.AlgorithmicException;
@@ -43,6 +43,55 @@ public class NewAlgoSimple extends Graph{
 		this(m, DEFAULT_NUM_ITERS);
 	}
 	
+	
+	
+	public class GroundedModel extends Model {
+		
+		
+		Map<Action, Double> R;
+		Map<Action, Measure> T;
+		
+		public GroundedModel(Model model, int num_samples) {
+			m.super();
+			
+			R = new HashMap<Action, Double>();
+			T = new HashMap<Action, Measure>();
+			
+			Iterator<Action> ada = m.get_action_iterator();
+			while(ada.hasNext()) {
+				//reward
+				Action a = ada.next();
+				R.put(a, model.R(a));
+				
+				//transition
+				Measure mtmp = model.T(a);
+				HashMap<State, Integer> counts = new HashMap<State, Integer>();
+				for (int i = 0; i < num_samples; i++) {
+					State s = mtmp.sample();
+					if(counts.containsKey(s)) { counts.put(s, counts.get(s)+1); }
+					else counts.put(s, 1);
+				}
+				T.put(a, m.new Measure(counts, num_samples) {
+					@Override
+					public State sample() {
+						// TODO Auto-generated method stub
+						return null;
+					}
+				});
+			}
+		}
+		
+		@Override
+		public double R(Action a) {
+			return R.get(a);
+		}
+
+		@Override
+		public Measure T(Action a) {
+			return T.get(a);
+		}
+			
+	}
 
 	public void addNewLayer() throws AlgorithmicException {
 		// this will maintain the index of new nodes
@@ -78,35 +127,14 @@ public class NewAlgoSimple extends Graph{
 			} // for nFinalLayer
 			
 			if(!sameModel) { //create a new node
-				//TODO : ground the stateModel (so that integration can be solved faster)
 				
-				Model mTmp = m.new Model() {
-
-					@Override
-					public double R(Action a) {
-						return modelIteratedState.R(a);
-					}
-
-					@Override
-					public Measure T(Action a) {
-						Measure mtmp = modelIteratedState.T(a);
-						HashMap<State, Integer> counts = new HashMap<State, Integer>();
-						for (int i = 0; i < 100; i++) { //TODO magic number
-							State s = mtmp.sample();
-							if(counts.containsKey(s)) { counts.put(s, counts.get(s)+1); }
-							else counts.put(s, 1);
-						}
-						
-						
-						
-						return null;
-					}
-					
-				};
 				
-				final Node nNew = new Node(nextIndex++, 
-						modelIteratedState, 
-						new LInfComparator(m), 
+				final Node nNew = new MemoizedNode(nextIndex++, 
+						//TODO: maybe change this: new GroundedModel(modelIteratedState, 100),
+						modelIteratedState,
+						//ground the stateModel (so that integration can be solved faster)
+						new LInfComparator(m),
+						// TODO maybe use this - new LInfComparator(m), 
 						prevLayer, 
 						null /* done below*/);
 				nNew.activation = m.new Feature() {
@@ -129,22 +157,29 @@ public class NewAlgoSimple extends Graph{
 			allNodes.add(n);
 		}
 	}
-
 	
 	
 	
-	public class NewAlgoNode extends Node{
-
-		public NewAlgoNode(int idx, Model label, ModelComparator modelDist,
+	private class MemoizedNode extends Node{
+		
+		HashMap<State,Double> activation_memoized = new HashMap<State, Double>();
+		//int max_capacity = 1000; //TODO : do something about this
+		
+		
+		public MemoizedNode(int idx, Model label, ModelComparator modelDist,
 				Set<Node> progenitors, Feature activation) {
 			super(idx, label, modelDist, progenitors, activation);
-			// TODO change the label
+			// TODO Auto-generated constructor stub
 		}
-		
-		
-		
+
+		@Override
+		public double activation(State s) {
+			Double d = activation_memoized.get(s);
+			if(d != null) return d;
+			d = activation.eval(s);
+			activation_memoized.put(s, d);
+			return d;
+		}
 	}
-	
-	
 
 }

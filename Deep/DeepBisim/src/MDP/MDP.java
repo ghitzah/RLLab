@@ -176,7 +176,7 @@ public abstract class MDP {
 	 * @author gcoman
 	 *
 	 */
-	public abstract class  Measure {
+	public class  Measure {
 		
 		final int NUM_SAMPLES = 100;
 		
@@ -189,6 +189,15 @@ public abstract class MDP {
 		 * The total measure (as we will use a finite total mass)
 		 */
 		int totalMeasure;
+		
+		
+		public Measure(Map<State, Integer> indiv_measures, int totalMeasure) {
+			this.indiv_measures = indiv_measures;
+			this.totalMeasure = totalMeasure;
+		}
+		
+		public Measure() {}
+		
 		
 		@SuppressWarnings("serial")
 		public class CannotDoExactExeption extends Exception { }
@@ -211,7 +220,10 @@ public abstract class MDP {
 			return count / NUM_SAMPLES;
 		}
 		
-		public abstract State sample();
+		public State sample() {
+			return null; //TODO!
+			
+		}
 		
 		
 	}

@@ -16,7 +16,7 @@ public class InitialTest {
 		int sizeGrid = 10;
 		int iterations = 10;
 		
-		GridMDP m = new GridMDP(sizeGrid);
+		PuddleMDP m = new PuddleMDP(sizeGrid);
 				//new GridMDP(sizeGrid, GridMDP.GridType.DEFAULT);
 		//System.out.println(m);
 		LinkedList<ExactBisimGraph> gset = new LinkedList<ExactBisimGraph>();
