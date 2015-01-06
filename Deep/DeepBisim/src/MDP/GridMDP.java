@@ -439,6 +439,13 @@ public class GridMDP extends MDP{
 		public String toString() {
 			return "(" + x_coord  + "," + y_coord + ")";
 		}
+		
+		
+		@Override
+		public boolean equals(Object obj) {
+			GridState ss = (GridState) obj;
+			return x_coord == ss.x_coord && y_coord == ss.y_coord;
+		}
 
 	}
 

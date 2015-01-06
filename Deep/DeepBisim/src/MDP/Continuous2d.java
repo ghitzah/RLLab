@@ -99,6 +99,7 @@ public class Continuous2d extends MDP{
 
 	@Override
 	public Measure P(State s, Action a) {
+		assert(s == null);
 		final DirectinalAction ad = (DirectinalAction) a;
 		final Cont2DState sc = (Cont2DState) s;
 		return new Measure() {

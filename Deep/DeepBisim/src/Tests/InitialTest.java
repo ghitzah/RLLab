@@ -2,19 +2,16 @@ package Tests;
 
 import java.util.LinkedList;
 
-import CompGraphs.ASynchDeclustGraph;
-import CompGraphs.DeclustGraph;
 import CompGraphs.DeclustGraph.AlgorithmicException;
 import CompGraphs.ExactBisimGraph;
 import CompGraphs.Graph;
-import MDP.GridMDP;
 import MDP.PuddleMDP;
 
 public class InitialTest {
 	public static void main(String[] args) {
 		
 		int sizeGrid = 10;
-		int iterations = 10;
+		int iterations = 13;
 		
 		PuddleMDP m = new PuddleMDP(sizeGrid);
 				//new GridMDP(sizeGrid, GridMDP.GridType.DEFAULT);
