@@ -21,7 +21,7 @@ import MDP.MDP.State;
  * @author gcoman
  *
  */
-public class NewAlgoSimple extends Graph{
+public class SimpleFeatureGenerator extends Graph{
 
 
 	final double ALPHA = 100.0;
@@ -29,12 +29,12 @@ public class NewAlgoSimple extends Graph{
 	static final int DEFAULT_NUM_ITERS  = 300;
 	final int numIters;
 
-	public NewAlgoSimple(MDP m, int numIters) {
+	public SimpleFeatureGenerator(MDP m, int numIters) {
 		super(m);
 		this.numIters = numIters;	
 	}
 
-	public NewAlgoSimple(MDP m) {
+	public SimpleFeatureGenerator(MDP m) {
 		this(m, DEFAULT_NUM_ITERS);
 	}
 

@@ -10,7 +10,6 @@ import MDP.MDP;
 import MDP.MDP.Action;
 import MDP.MDP.Cluster;
 import MDP.MDP.ExactStateModel;
-import MDP.MDP.Measure.CannotDoExactExeption;
 import MDP.MDP.Model;
 import MDP.MDP.State;
 
