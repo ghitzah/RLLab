@@ -1,7 +1,5 @@
 package CompGraphs;
 
-import java.awt.List;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -14,10 +12,8 @@ import java.util.TreeSet;
 import CompGraphs.DeclustGraph.AlgorithmicException;
 import CompGraphs.Graph.Node;
 import CompGraphs.ModelComparator.IncorrectModelExpection;
-import CompGraphs.NewAlgoSimple.MemoizedFeature;
 import MDP.MDP;
 import MDP.MDP.Action;
-import MDP.MDP.ExactStateModel;
 import MDP.MDP.Feature;
 import MDP.MDP.Measure;
 import MDP.MDP.Model;
@@ -29,23 +25,11 @@ import MDP.MDP.State;
  * @author gcoman
  *
  */
-public class NewNewAlgo extends Graph{
+public class NewNewAlgo extends NewAlgoSimple{
 
-
-	private double ALPHA = 100.0;
-
-	private static final int DEFAULT_NUM_ITERS  = 300;
-	private final int numIters;
-
+	
 	public NewNewAlgo(MDP m, int numIters) {
-		super(m);
-		this.numIters = numIters;
-		try {
-			
-			addNewLayer(true);
-		} catch (AlgorithmicException e) {
-			e.printStackTrace();
-		}	
+		super(m, numIters);
 	}
 
 	public NewNewAlgo(MDP m) {
@@ -54,11 +38,11 @@ public class NewNewAlgo extends Graph{
 
 
 	public void addNewLayer() throws AlgorithmicException{
-		addNewLayer(false);
+		addNewLayer(allNodes.size() == 0);
 	}
 
 
-	private void addNewLayer(boolean firstLayer) throws AlgorithmicException {
+	private void addNewLayer(boolean firstLayer) {
 		if(firstLayer){
 			// this will maintain the index of new nodes
 			int nextIndex = (allNodes == null) ? 0 : allNodes.size();
@@ -74,9 +58,7 @@ public class NewNewAlgo extends Graph{
 			int tmpNumIters = numIters;
 
 			while(ada.hasNext() && tmpNumIters-- > 0) {
-				//System.out.print(".");
-				//final Model modelIteratedState = new GroundedModel(m.new ExactStateModel(ada.next()), 100);
-				Model modelIteratedState = m.new ExactStateModel(ada.next());
+				Model modelIteratedState = new GroundedModel(ada.next(), 100);
 				//this will be true only if one of the newly created nodes 
 				//has the same model as the crt model we inspect
 				boolean sameModel = false; 
@@ -94,18 +76,15 @@ public class NewNewAlgo extends Graph{
 
 				if(!sameModel) { //create a new node
 					final Node nNew = new Node(nextIndex++, 
-							//new GroundedModel(modelIteratedState, 100),
 							modelIteratedState,
-							//ground the stateModel (so that integration can be solved faster)
 							new LInfComparator(m),
-							// TODO maybe use this - new LInfComparator(m), 
 							prevLayer, 
 							null /* done below*/);
 					nNew.activation = new MemoizedFeature() {
 						@Override
 						double eval_non_existent(State s) {
 							try {
-								return Math.exp(- ALPHA * nNew.dist(m.new ExactStateModel(s)));
+								return Math.exp(- ALPHA * nNew.dist(new GroundedModel(s, 100)));
 							} catch (IncorrectModelExpection e) {
 								e.printStackTrace();
 								return 0;
@@ -133,28 +112,24 @@ public class NewNewAlgo extends Graph{
 			//we will rebuild the final layer from 0
 			finalLayer = new TreeSet<Node>();
 	
-			// get a fixed number of states to determine which nodes to create
-			Iterator<State> ada = m.get_state_iterator();
-			int tmpNumIters = numIters;
-			
-			// heuristic used to select a subset of nodes to analyze
-			Heuristic myHeuristic = new Heuristic(100, Heuristic.HeuristicType.RANDOM_PAIR);
 	
 			// select a subset of nodes to analyze
-			//Set<Node> NodesSelected = myHeuristic.select(prevLayer);
+			//Set<Node> NodesSelected = new Heuristic(100, Heuristic.HeuristicType.RANDOM_PAIR).select(prevLayer);
 			Set<Node> NodesSelected = prevLayer;
 			
 			// mapping each node to a list of nodes
-			HashMap<Node, LinkedList<Node>> nodeToList = new HashMap();
-			
+			HashMap<Node, LinkedList<Node>> nodeToList = new HashMap<Node, LinkedList<Node>>();
 			// put selected nodes into the map
 			for(Node pNode : NodesSelected){
-				nodeToList.put(pNode, new LinkedList());
+				nodeToList.put(pNode, new LinkedList<Node>());
 			}
-			
+
+			// get a fixed number of states to determine which nodes to create
+			Iterator<State> ada = m.get_state_iterator();
+			int tmpNumIters = numIters;
 			while(ada.hasNext() && tmpNumIters-- > 0) {
 				
-				Model modelIteratedState = m.new ExactStateModel(ada.next());
+				Model modelIteratedState = new GroundedModel(ada.next(), 100);
 				
 				for(Node pNode : NodesSelected) {
 					// saved model that we compare to
@@ -165,9 +140,8 @@ public class NewNewAlgo extends Graph{
 							boolean sameModel = false;
 							
 							if(!nodeToList.get(pNode).isEmpty()) {
-								ListIterator<Node> listIterator = nodeToList.get(pNode).listIterator();
-						        while (listIterator.hasNext()) {
-						            if(listIterator.next().dist(modelIteratedState) < EPSILON){
+								for(Node n : nodeToList.get(pNode)) {
+						            if(n.dist(modelIteratedState) < EPSILON){
 						            	sameModel = true; // no need to create a new node
 						            	break;
 						            }
@@ -179,18 +153,15 @@ public class NewNewAlgo extends Graph{
 							if(!sameModel){	
 								// create a new node
 								final Node nNew = new Node(nextIndex++, 
-										//new GroundedModel(modelIteratedState, 100),
 										modelIteratedState,
-										//ground the stateModel (so that integration can be solved faster)
 										new LInfComparator(m),
-										// TODO maybe use this - new LInfComparator(m), 
 										prevLayer, 
 										null /* done below*/);
 								nNew.activation = new MemoizedFeature() {
 									@Override
 									double eval_non_existent(State s) {
 										try {
-											return Math.exp(- ALPHA * nNew.dist(m.new ExactStateModel(s)));
+											return Math.exp(- ALPHA * nNew.dist(new GroundedModel(s, 100)));
 										} catch (IncorrectModelExpection e) {
 											e.printStackTrace();
 											return 0;
@@ -230,73 +201,5 @@ public class NewNewAlgo extends Graph{
 		}
 	}
 	
-	
-	abstract class MemoizedFeature extends Feature {
-
-		HashMap<State,Double> activation_memoized = new HashMap<State, Double>();
-		//int max_capacity = 1000; //TODO : do something about this
-
-		public MemoizedFeature() {
-			m.super();
-		}
-		
-		
-		@Override
-		public double eval(State s) {
-			Double d = activation_memoized.get(s);
-			if(d != null) {
-				return d;
-			}
-			d = eval_non_existent(s);
-			activation_memoized.put(s, d);
-			return d;
-		}
-		
-		abstract double eval_non_existent(State s);
-		
-	}
-
-	public class GroundedModel extends Model {
-
-
-		Map<Action, Double> R;
-		Map<Action, Measure> T;
-
-		public GroundedModel(Model model, int num_samples) {
-			m.super();
-
-			R = new HashMap<Action, Double>();
-			T = new HashMap<Action, Measure>();
-
-			Iterator<Action> ada = m.get_action_iterator();
-			while(ada.hasNext()) {
-				//reward
-				Action a = ada.next();
-				R.put(a, model.R(a));
-
-				//transition
-				Measure mtmp = model.T(a);
-				HashMap<State, Integer> counts = new HashMap<State, Integer>();
-				for (int i = 0; i < num_samples; i++) {
-					State s = mtmp.sample();
-					if(counts.containsKey(s)) { counts.put(s, counts.get(s)+1); }
-					else counts.put(s, 1);
-				}
-				T.put(a, m.new Measure(counts, num_samples));
-			}
-		}
-
-		@Override
-		public double R(Action a) {
-			return R.get(a);
-		}
-
-		@Override
-		public Measure T(Action a) {
-			return T.get(a);
-		}
-
-	}
-
 
 }

@@ -24,19 +24,14 @@ import MDP.MDP.State;
 public class NewAlgoSimple extends Graph{
 
 
-	private double ALPHA = 100.0;
+	final double ALPHA = 100.0;
 
-	private static final int DEFAULT_NUM_ITERS  = 300;
-	private final int numIters;
+	static final int DEFAULT_NUM_ITERS  = 300;
+	final int numIters;
 
 	public NewAlgoSimple(MDP m, int numIters) {
 		super(m);
-		this.numIters = numIters;
-		try {
-			addNewLayer();
-		} catch (AlgorithmicException e) {
-			e.printStackTrace();
-		}	
+		this.numIters = numIters;	
 	}
 
 	public NewAlgoSimple(MDP m) {
@@ -62,9 +57,9 @@ public class NewAlgoSimple extends Graph{
 		int tmpNumIters = numIters;
 
 		while(ada.hasNext() && tmpNumIters-- > 0) {
-			//System.out.print(".");
-			//final Model modelIteratedState = new GroundedModel(m.new ExactStateModel(ada.next()), 100);
-			Model modelIteratedState = m.new ExactStateModel(ada.next());
+			
+			final Model modelIteratedState = new GroundedModel(ada.next(), 100);
+			
 			//this will be true only if one of the newly created nodes 
 			//has the same model as the crt model we inspect
 			boolean sameModel = false; 
@@ -82,18 +77,15 @@ public class NewAlgoSimple extends Graph{
 
 			if(!sameModel) { //create a new node
 				final Node nNew = new Node(nextIndex++, 
-						//new GroundedModel(modelIteratedState, 100),
-						modelIteratedState,
-						//ground the stateModel (so that integration can be solved faster)
+						new GroundedModel(modelIteratedState, 100),
 						new LInfComparator(m),
-						// TODO maybe use this - new LInfComparator(m), 
 						prevLayer, 
 						null /* done below*/);
 				nNew.activation = new MemoizedFeature() {
 					@Override
 					double eval_non_existent(State s) {
 						try {
-							return Math.exp(- ALPHA * nNew.dist(m.new ExactStateModel(s)));
+							return Math.exp(- ALPHA * nNew.dist(new GroundedModel(s,100)));
 						} catch (IncorrectModelExpection e) {
 							e.printStackTrace();
 							return 0;
@@ -141,40 +133,51 @@ public class NewAlgoSimple extends Graph{
 
 		Map<Action, Double> R;
 		Map<Action, Measure> T;
+		Model model;
+		int numSamples;
 
 		public GroundedModel(Model model, int num_samples) {
 			m.super();
-
+			this.model = model;
+			this.numSamples = num_samples;
 			R = new HashMap<Action, Double>();
 			T = new HashMap<Action, Measure>();
-
-			Iterator<Action> ada = m.get_action_iterator();
-			while(ada.hasNext()) {
-				//reward
-				Action a = ada.next();
-				R.put(a, model.R(a));
-
-				//transition
-				Measure mtmp = model.T(a);
-				HashMap<State, Integer> counts = new HashMap<State, Integer>();
-				for (int i = 0; i < num_samples; i++) {
-					State s = mtmp.sample();
-					if(counts.containsKey(s)) { counts.put(s, counts.get(s)+1); }
-					else counts.put(s, 1);
-				}
-				T.put(a, m.new Measure(counts, num_samples));
-			}
+		}
+		
+		public GroundedModel(State s, int num_samples) {
+			this(m.new ExactStateModel(s), num_samples);
 		}
 
 		@Override
 		public double R(Action a) {
-			return R.get(a);
+			Double d = R.get(a);
+			if(d == null) {
+				d = model.R(a);
+				R.put(a, d);
+			}
+			return d;
 		}
 
 		@Override
 		public Measure T(Action a) {
-			return T.get(a);
+			Measure mes = T.get(a);
+			if(mes == null) {	
+				mes = model.T(a);
+				if(!mes.isGrounded()) {  
+					HashMap<State, Integer> counts = new HashMap<State, Integer>();
+					for (int i = 0; i < numSamples; i++) {
+						State s = mes.sample();
+						assert(s != null);
+						if(counts.containsKey(s)) { counts.put(s, counts.get(s)+1); }
+						else counts.put(s, 1);
+					}
+					mes = m.new Measure(counts, numSamples); 
+				}
+				T.put(a, mes);
+			}
+			return mes;
 		}
+
 
 	}
 

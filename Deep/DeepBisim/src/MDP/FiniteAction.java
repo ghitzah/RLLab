@@ -21,4 +21,11 @@ public class FiniteAction implements Action{
 	public int idx() {
 		return idx;
 	}
+	
+	
+	@Override
+	public boolean equals(Object obj) {
+		FiniteAction aa = (FiniteAction) obj;
+		return (idx == aa.idx);
+	}
 }

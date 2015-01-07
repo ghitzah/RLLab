@@ -114,13 +114,8 @@ public class ExactBisimGraph extends Graph{
 					if(diffR > EPSILON) { sameModel = false; break; }
 					for(Node nodePrevLayer : prevLayer) {
 						double tmp;
-						try {
 							tmp = modelIteratedState.T(a).integrateExact(nodePrevLayer.activation) 
 										  - savedModel.T(a).integrateExact(nodePrevLayer.activation);
-						} catch (CannotDoExactExeption e) {
-							e.printStackTrace();
-							return;
-						}
 						if(tmp > EPSILON) { sameModel = false; break; }
 					} // for
 				} // while

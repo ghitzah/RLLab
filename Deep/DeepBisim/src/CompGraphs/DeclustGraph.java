@@ -10,7 +10,6 @@ import MDP.MDP;
 import MDP.MDP.Action;
 import MDP.MDP.ExactStateModel;
 import MDP.MDP.Cluster;
-import MDP.MDP.Measure.CannotDoExactExeption;
 import MDP.MDP.Model;
 import MDP.MDP.State;
 
@@ -87,17 +86,8 @@ public class DeclustGraph extends ExactBisimGraph{
 					while(ada.hasNext()) {
 						Action a  = ada.next();
 						for(Node prevNode : prevLayer) {
-							double tmp;
-							try {
-								tmp = modelIteratedState.T(a).integrateExact(prevNode.activation) 
-											  - savedModel.T(a).integrateExact(prevNode.activation);
-							} catch (CannotDoExactExeption e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-								assert(false);
-								return;
-							}
-							
+							double tmp = modelIteratedState.T(a).integrateExact(prevNode.activation) 
+									- savedModel.T(a).integrateExact(prevNode.activation);
 							if(tmp > EPSILON) { sameModel = false; break; }
 						} // for
 					} // while

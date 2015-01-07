@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import MDP.MDP;
-import MDP.MDP.Measure.CannotDoExactExeption;
 import MDP.MDP.Model;
 import MDP.MDP.Action;
 import MDP.MDP.Feature;
@@ -55,14 +54,10 @@ public class LInfComparator extends ModelComparator{
 			if(features != null) {
 				for(Feature f : features) {
 					double tmp;
-					try {
-						tmp = (sampled) ? 
-								m1.T(a).integrateSampled(f) - m2.T(a).integrateSampled(f)
+					tmp = (sampled) ? 
+							m1.T(a).integrateSampled(f) - m2.T(a).integrateSampled(f)
 							: m1.T(a).integrateExact(f) - m2.T(a).integrateExact(f);
-					} catch (CannotDoExactExeption e) {
-						System.out.println("PROBLEM");
-						throw new IncorrectModelExpection();
-					}
+
 					diffT = Math.max(diffT, Math.abs(tmp));
 				} // for
 			}

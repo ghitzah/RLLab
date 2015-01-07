@@ -202,8 +202,9 @@ public abstract class MDP {
 		@SuppressWarnings("serial")
 		public class CannotDoExactExeption extends Exception { }
 		
-		public double integrateExact(Feature f) throws CannotDoExactExeption {
-			if(indiv_measures == null) throw new CannotDoExactExeption();
+		public double integrateExact(Feature f){
+			assert(indiv_measures != null);
+			//if(indiv_measures == null) throw new CannotDoExactExeption();
 			double d = 0;
 			for(State s : indiv_measures.keySet()) {
 				Integer ada = indiv_measures.get(s);
@@ -223,6 +224,11 @@ public abstract class MDP {
 		public State sample() {
 			return null; //TODO!
 			
+		}
+		
+		
+		public boolean isGrounded() {
+			return (indiv_measures != null);
 		}
 		
 		
@@ -349,7 +355,6 @@ public abstract class MDP {
 		public boolean checkMDP(MDP m) {
 			return (MDP.this == m);
 		}
-		
 	}
 	
 	
