@@ -180,6 +180,23 @@ public class ExactBisimGraph extends Graph{
 	} // class
 	
 	
+	public class KanNode extends Node{
+		
+		public KanNode(MDP m, State s, Set<Node> progenitors, int idx) {
+			super(idx /* index */, 
+				m.new ExactStateModel(s) /* label */, 
+				new KanComparator(m), /* Kantorovich comparator */
+				progenitors, /* dependents*/ 
+				null /* activation function - below*/);
+			
+			// activation function 
+			Cluster activation = m.new Cluster();
+			activation.add_state(s);
+			this.activation = activation;
+		} //constructor
+	}
+	
+	
 	
 	
 	

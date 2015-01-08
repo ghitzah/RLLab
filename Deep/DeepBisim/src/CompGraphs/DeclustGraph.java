@@ -98,7 +98,10 @@ public class DeclustGraph extends ExactBisimGraph{
 					}
 				}
 				if(newNode) { // if new node has to be created
-					Node nNew = new ExactBisimNode(m, iteratedState, prevLayer, nextIndex++); // create node
+					/* LInf Comparator */
+					//Node nNew = new ExactBisimNode(m, iteratedState, prevLayer, nextIndex++); // create node
+					/* Kantorovich Comparator */
+					Node nNew = new KanNode(m, iteratedState, prevLayer, nextIndex++); // create node
 					declusteringNodes.add(nNew); // add it to result of declustering
 				}
 			} // for s
